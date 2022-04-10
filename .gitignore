@@ -1,0 +1,11 @@
+*.secret
+
+# mac
+.DS_Store
+
+# 测试用
+test_fixtures/
+
+# 自己用的的配置
+sensitive.list
+config.yaml
