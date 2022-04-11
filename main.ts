@@ -16,7 +16,7 @@ import {
   text,
 } from "./go_cqhttp_client/message_piece.ts";
 import { makeDefaultKuboBot } from "./kubo/index.ts";
-import { sleep } from "./utils/misc.ts";
+import { generateRandomIntegerByBoxMuller } from "./utils/misc.ts";
 
 console.log("初始化中…");
 
@@ -51,6 +51,13 @@ async function main() {
     connection: {
       ...config.connection,
       accessToken,
+    },
+    sending: {
+      // 在处理完令牌桶后的延时
+      // TODO: 应该直接和令牌桶整合
+      messageDelay: () => {
+        return generateRandomIntegerByBoxMuller(111, 888);
+      },
     },
   });
 
@@ -91,7 +98,7 @@ async function main() {
   });
 
   bot.onGroupMessage({ all: true }, (bot, msg, ev) => {
-    if (ev.sender.qq === qq && ev.groupId == group) {
+    if (ev.sender.qq === qq && ev.groupId === group) {
       return "skip";
     }
     return "stop";
@@ -133,7 +140,6 @@ async function main() {
       outMsg = [...ref, ...(text1 ? [text(text1)] : []), ...msg.slice(1)];
     }
     (async () => {
-      await sleep(1500);
       const ret = await bot.sendGroupMessage(group, outMsg);
       bot.log("test", "debug", { ret });
     })();

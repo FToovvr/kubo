@@ -2,6 +2,7 @@ import { EventClient } from "./event_client.ts";
 import { APIClient } from "./api_client.ts";
 import { TokenBucket } from "../utils/token_bucket.ts";
 import { MessagePiece, Text } from "./message_piece.ts";
+import { sleep } from "../utils/misc.ts";
 
 export class Client {
   //==== 配置相关 ====
@@ -23,6 +24,7 @@ export class Client {
 
       sending?: {
         messageTokenBucket?: TokenBucket;
+        messageDelay?: number | (() => number);
       };
     },
   ) {
@@ -44,6 +46,7 @@ export class Client {
 
     this.messageTokenBucket = args.sending?.messageTokenBucket ??
       new TokenBucket({ size: 1, supplementPerSecond: 1 });
+    this.messageDelay = args.sending?.messageDelay ?? 0;
   }
 
   //==== 运行 ====
@@ -57,6 +60,7 @@ export class Client {
   //==== 发送消息 ====
 
   messageTokenBucket: TokenBucket;
+  messageDelay: number | (() => number);
 
   private supportedTypes = new Set(["text", "at", "face", "image"]);
 
@@ -65,6 +69,13 @@ export class Client {
     message: string | MessagePiece[],
   ) {
     await this.messageTokenBucket.take();
+    if (this.messageDelay) {
+      let d = this.messageDelay;
+      d = (typeof d === "number") ? d : d();
+      if (d > 0) {
+        await sleep(d);
+      }
+    }
 
     if (message.length === 0) { // string 和 array 正好都可以判断
       throw new Error(`消息不能为空！消息内容：${JSON.stringify(message)}`);

@@ -1,9 +1,9 @@
 import { KuboPlugin } from "../bot.ts";
-import { PluginStore } from "../storage.ts";
+import { PluginStoreWrapper } from "../storage.ts";
 
 export default function () {
   const id = "one_min_rp";
-  let store: PluginStore | null = null;
+  let store: PluginStoreWrapper | null = null;
   const plugin: KuboPlugin = {
     id,
 

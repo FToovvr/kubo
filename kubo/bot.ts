@@ -8,7 +8,7 @@ import {
 } from "../go_cqhttp_client/events.ts";
 import { MessagePiece, Text } from "../go_cqhttp_client/message_piece.ts";
 
-import { PluginStore, Store } from "./storage.ts";
+import { PluginStoreWrapper, Store } from "./storage.ts";
 import utils from "./utils.ts";
 
 export interface KuboPlugin {
@@ -156,7 +156,7 @@ export class KuboBot {
   }
 
   getStore(plugin: KuboPlugin) {
-    return new PluginStore(this._store, plugin);
+    return new PluginStoreWrapper(this._store, plugin);
   }
 
   //==== Helpers ====
@@ -242,29 +242,30 @@ export class KuboBot {
           }
           // 处理群消息
 
+          let result: ProcessResult | null = null;
           if (filteredMatcher.text) {
             if (!pureText) continue;
             // 处理消息是纯文本的情况
-            const result = processPureTextMessage(
+            // FIXME: 为什么可能会返回 undefined？
+            result = processPureTextMessage(
               ev,
               pureText,
               filteredMatcher.text,
               callback as OnGroupMessageCallback<"text">,
-            );
-            if (result === "pass" || result == "stop") {
-              isProcessed = true;
-              if (result === "stop") {
-                break OUT;
-              }
-            }
-            continue;
+            ) ?? "skip";
           } else if (filteredMatcher.complex) {
-            processComplexMessage(
+            result = processComplexMessage(
               ev,
               pureText ?? ev.message,
               filteredMatcher.complex,
               callback as OnGroupMessageCallback<"pieces+text">,
-            );
+            ) ?? "skip";
+          }
+          if (result === "pass" || result == "stop") {
+            isProcessed = true;
+            if (result === "stop") {
+              break OUT;
+            }
           }
         }
       }

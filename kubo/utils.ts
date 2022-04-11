@@ -1,5 +1,13 @@
 import { MessagePiece, Text } from "../go_cqhttp_client/message_piece.ts";
 
+import {
+  generateRandomByBoxMuller,
+  generateRandomInteger,
+  generateRandomIntegerByBoxMuller,
+  getCurrentUTCTimestamp,
+  getCurrentUTCTimestampMs,
+} from "../utils/misc.ts";
+
 export default {
   // 去掉可能存在的引用回复
   removeReferenceFromMessage: (message: MessagePiece[]) => {
@@ -22,11 +30,9 @@ export default {
     return null;
   },
 
-  generateRandomInteger(min: number, max: number) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  },
-
-  getCurrentUTCTimestamp() {
-    return Math.floor((new Date()).getTime() / 1000);
-  },
+  generateRandomInteger,
+  generateRandomByBoxMuller,
+  generateRandomIntegerByBoxMuller,
+  getCurrentUTCTimestampMs,
+  getCurrentUTCTimestamp,
 };

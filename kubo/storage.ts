@@ -1,4 +1,5 @@
 import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
+import { getCurrentUTCTimestamp } from "../utils/misc.ts";
 
 import { KuboPlugin } from "./bot.ts";
 
@@ -34,7 +35,7 @@ export class Store {
   }
 
   cleanExpired() {
-    const now = Math.floor((new Date()).getTime() / 1000);
+    const now = getCurrentUTCTimestamp();
     this.db.query(`DELETE FROM store WHERE expire_timestamp < ?`, [now]);
   }
 
@@ -54,7 +55,7 @@ export class Store {
       return null;
     }
     const [value, expire_timestamp] = row[0] as [Value, number];
-    const now = Math.floor((new Date()).getTime() / 1000);
+    const now = getCurrentUTCTimestamp();
     if (expire_timestamp && now > expire_timestamp) { // 清理的事情交给别处
       return null;
     }
@@ -99,17 +100,16 @@ export class Store {
   }
 }
 
-export class PluginStore {
+export class StoreWrapper {
   store: Store;
-  pluginId: string;
-
-  constructor(store: Store, plugin: KuboPlugin) {
-    this.store = store;
-    this.pluginId = plugin.id;
+  private _namespace: string;
+  public get namespace(): string {
+    return this._namespace;
   }
 
-  get namespace() {
-    return `p.${this.pluginId}`;
+  constructor(store: Store, namespace: string) {
+    this.store = store;
+    this._namespace = namespace;
   }
 
   get(ctx: { group?: number; qq?: number }, key: string) {
@@ -128,5 +128,18 @@ export class PluginStore {
       val,
       args,
     );
+  }
+}
+
+export class PluginStoreWrapper extends StoreWrapper {
+  pluginId: string;
+
+  constructor(store: Store, plugin: KuboPlugin) {
+    super(store, "never");
+    this.pluginId = plugin.id;
+  }
+
+  override get namespace() {
+    return `p.${this.pluginId}`;
   }
 }
