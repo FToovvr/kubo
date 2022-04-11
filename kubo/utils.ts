@@ -21,4 +21,12 @@ export default {
     }
     return null;
   },
+
+  generateRandomInteger(min: number, max: number) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  },
+
+  getCurrentUTCTimestamp() {
+    return Math.floor((new Date()).getTime() / 1000);
+  },
 };

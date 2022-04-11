@@ -1,6 +1,8 @@
 import { encode as encodeBase64 } from "https://deno.land/std@0.95.0/encoding/base64.ts";
 import { parse as parseYaml } from "https://deno.land/std@0.134.0/encoding/yaml.ts";
 
+import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
+
 import {
   StandardWebSocketClient,
   WebSocketClient,
@@ -24,6 +26,9 @@ const config = parseYaml(await Deno.readTextFile("config.yaml")) as {
     ports: { http: number; ws: number };
     "access-token-file": string;
   };
+  storage: {
+    "db-file": string;
+  };
   "x-sensitive-list-file": string;
   "x-my-qq": number;
   "x-my-group": number;
@@ -36,6 +41,8 @@ const accessToken = await Deno.readTextFile(
 const sensitiveList = (await Deno.readTextFile(
   config["x-sensitive-list-file"],
 )).split("\n");
+
+const db = new DB(config.storage["db-file"]);
 
 async function main() {
   const 猫猫睡觉 = await fileToBase64("test_fixtures/猫猫睡觉.jpg");
@@ -67,7 +74,7 @@ async function main() {
     return;
   }
 
-  const bot = makeDefaultKuboBot(client, {
+  const bot = makeDefaultKuboBot(client, db, {
     sensitiveList: [...sensitiveList, "瑟瑟"],
   });
   const qq = config["x-my-qq"];

@@ -1,3 +1,5 @@
+import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
+
 import { Client } from "../go_cqhttp_client/client.ts";
 import {
   FriendRequestEvent,
@@ -6,10 +8,13 @@ import {
 } from "../go_cqhttp_client/events.ts";
 import { MessagePiece, Text } from "../go_cqhttp_client/message_piece.ts";
 
+import { PluginStore, Store } from "./storage.ts";
 import utils from "./utils.ts";
 
 export interface KuboPlugin {
   id: string;
+
+  init?: (bot: KuboBot) => void | false; // false 则不加载
 
   hooks?: {
     beforeSendMessage?: (
@@ -89,18 +94,22 @@ function extractMessageFilter(m: MessageMatcher | FallbackMessageMatcher) {
 export class KuboBot {
   // 不建议插件直接使用
   _client: Client;
+  _db: DB;
+  _store: Store;
 
   utils = utils;
 
-  private hooks = {
+  protected hooks = {
     beforeSendMessage: [] as ((
       bot: KuboBot,
       message: string | MessagePiece[],
     ) => string | MessagePiece[] | null | { intercept: true })[],
   };
 
-  constructor(client: Client) {
+  constructor(client: Client, db: DB) {
     this._client = client;
+    this._db = db;
+    this._store = new Store(db);
     this.init();
   }
 
@@ -108,8 +117,26 @@ export class KuboBot {
     console.debug(label, ...args);
   }
 
+  async run() {
+    await this._client.run();
+  }
+
+  //==== on Plugins ====
+
+  plugins: { [key: string]: any } = {};
+
   use(plugin: KuboPlugin | null): KuboBot {
     if (!plugin) {
+      return this;
+    }
+
+    if (plugin.id in this.plugins) {
+      throw new Error(`插件 ID 重复：${plugin.id}`);
+    }
+    this.plugins[plugin.id] = plugin;
+
+    if (plugin.init?.(this) === false) {
+      // TODO: log
       return this;
     }
 
@@ -128,11 +155,11 @@ export class KuboBot {
     return this;
   }
 
-  async run() {
-    await this._client.run();
+  getStore(plugin: KuboPlugin) {
+    return new PluginStore(this._store, plugin);
   }
 
-  //==== 便捷功能 ====
+  //==== Helpers ====
 
   init() {
     this.initOnMessage();
@@ -285,7 +312,7 @@ export class KuboBot {
     ]);
   }
 
-  //==== API ====
+  //==== Actions ====
 
   async sendGroupMessage(
     to: number,

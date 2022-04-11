@@ -6,6 +6,7 @@
 # 测试用
 test_fixtures/
 
-# 自己用的的配置
+# 自用的数据
 sensitive.list
 config.yaml
+db.s3db
