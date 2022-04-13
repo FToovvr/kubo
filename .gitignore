@@ -10,3 +10,4 @@ test_fixtures/
 sensitive-words/
 config.yaml
 db.s3db
+sync.sh
