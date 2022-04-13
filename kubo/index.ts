@@ -8,7 +8,7 @@ import sensitiveFilter from "./modules/sensitive_filter/index.ts";
 import oneMinRp from "./modules/one_min_rp.ts";
 
 export function makeDefaultKuboBot(client: Client, db: DB, args: {
-  sensitiveList: string[] | null;
+  sensitiveList?: string[];
   ownerQQ?: number | number[];
 }) {
   return new KuboBot(client, db, args)

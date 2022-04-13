@@ -7,6 +7,6 @@
 test_fixtures/
 
 # 自用的数据
-sensitive.list
+sensitive-words/
 config.yaml
 db.s3db

@@ -1,5 +1,6 @@
 import { encode as encodeBase64 } from "https://deno.land/std@0.95.0/encoding/base64.ts";
 import { parse as parseYaml } from "https://deno.land/std@0.134.0/encoding/yaml.ts";
+import * as path from "https://deno.land/std@0.134.0/path/mod.ts";
 
 import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
 
@@ -33,10 +34,10 @@ const config = parseYaml(await Deno.readTextFile("config.yaml")) as {
   storage: {
     "db-file": string;
   };
-  "x-sensitive-list-file": string;
   common: {
     "owner-qq": number | number[];
   };
+  "x-sensitive-words-dir": string;
   "x-my-group": number;
 };
 
@@ -44,9 +45,23 @@ const accessToken = await Deno.readTextFile(
   config.connection["access-token-file"],
 );
 
-const sensitiveList = (await Deno.readTextFile(
-  config["x-sensitive-list-file"],
-)).split("\n");
+const sensitiveList = await (async () => {
+  const pendings: string[] = [config["x-sensitive-words-dir"]];
+  const allWords = [];
+  while (pendings.length > 0) {
+    const [cur] = pendings.splice(0, 1);
+    for await (const entry of Deno.readDir(cur)) {
+      if (entry.isFile && /\.list$/.test(entry.name)) {
+        const text = await Deno.readTextFile(path.join(cur, entry.name));
+        const words = text.split("\n");
+        allWords.push(...words);
+      } else if (entry.isDirectory) {
+        pendings.push(path.join(cur, entry.name));
+      }
+    }
+  }
+  return allWords;
+})();
 
 const db = new DB(config.storage["db-file"]);
 
@@ -88,7 +103,7 @@ async function main() {
   }
 
   const bot = makeDefaultKuboBot(client, db, {
-    sensitiveList: [...sensitiveList, "瑟瑟"],
+    sensitiveList,
     ownerQQ: config.common["owner-qq"],
   });
   const group = config["x-my-group"];
