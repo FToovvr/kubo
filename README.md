@@ -4,6 +4,7 @@
 
 ```yaml
 message:
+  post-format: array
   extra-reply-data: true
 
 servers:
