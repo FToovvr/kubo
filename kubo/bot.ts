@@ -8,8 +8,9 @@ import {
   MessageOfPrivateEvent,
 } from "../go_cqhttp_client/events.ts";
 import { MessagePiece, Text } from "../go_cqhttp_client/message_piece.ts";
+import { SettingsManager } from "./settings_manager.ts";
 
-import { PluginStoreWrapper, Store } from "./storage.ts";
+import { PluginStoreWrapper, Store, StoreWrapper } from "./storage.ts";
 import utils from "./utils.ts";
 
 export interface KuboPlugin {
@@ -102,6 +103,8 @@ export class KuboBot {
   _db: DB;
   _store: Store;
 
+  settingsManager: SettingsManager;
+
   utils = utils;
 
   ownerQQ: number | number[] | null;
@@ -119,6 +122,9 @@ export class KuboBot {
     this._client = client;
     this._db = db;
     this._store = new Store(db);
+    this.settingsManager = new SettingsManager(
+      new StoreWrapper(this._store, "settings"),
+    );
     this.ownerQQ = cfg?.ownerQQ || null;
     this.init();
   }
