@@ -32,6 +32,9 @@ export class Store {
     `);
 
     this.cleanExpired();
+
+    // 20 分钟清理一次
+    setInterval(this.cleanExpired, 1000 * 60 * 20);
   }
 
   cleanExpired() {
