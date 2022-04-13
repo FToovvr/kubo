@@ -7,6 +7,7 @@ type Value = number | string | null;
 
 export class Store {
   db: DB;
+  private intervalId: number;
 
   constructor(db: DB) {
     this.db = db;
@@ -34,7 +35,11 @@ export class Store {
     this.cleanExpired();
 
     // 20 分钟清理一次
-    setInterval(this.cleanExpired, 1000 * 60 * 20);
+    this.intervalId = setInterval(this.cleanExpired, 1000 * 60 * 20);
+  }
+
+  close() {
+    clearInterval(this.intervalId);
   }
 
   cleanExpired() {

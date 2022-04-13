@@ -131,6 +131,11 @@ export class KuboBot {
     await this._client.run();
   }
 
+  async close() {
+    this._store.close();
+    this._db.close();
+  }
+
   //==== on Plugins ====
 
   plugins: { [key: string]: any } = {};

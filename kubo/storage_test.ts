@@ -8,89 +8,97 @@ import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
 
 import { Store } from "./storage.ts";
 
-function makeStore() {
-  return new Store(new DB());
+async function withNewStore(cb: (store: Store) => Promise<void> | void) {
+  const db = new DB();
+  const store = new Store(db);
+  await cb(store);
+  store.close();
+  db.close();
 }
 
-Deno.test("kubo/storage set&get", () => {
-  const store = makeStore();
-  const ctx = { namespace: "test" };
+Deno.test("kubo/storage set&get", async () => {
+  await withNewStore((store) => {
+    const ctx = { namespace: "test" };
 
-  for (const _ in [1, 2]) {
-    for (const val of ["foo", 42, null]) {
-      store.set(ctx, "test", val);
-      assertEquals(store.get(ctx, "test"), val);
+    for (const _ in [1, 2]) {
+      for (const val of ["foo", 42, null]) {
+        store.set(ctx, "test", val);
+        assertEquals(store.get(ctx, "test"), val);
+      }
     }
-  }
 
-  assertEquals(store.get(ctx, "not found"), null);
+    assertEquals(store.get(ctx, "not found"), null);
+  });
 });
 
-Deno.test("kubo/storage ctx error", () => {
-  const store = makeStore();
-  const ctxs: { namespace: string; group?: number; qq?: number }[] = [];
-  for (const group of [null, 0, -1]) {
-    for (const qq of [null, 0, -1]) {
-      ctxs.push({
-        namespace: "",
-        ...(group ? { group } : {}),
-        ...(qq ? { qq } : {}),
-      });
-    }
-  }
-
-  for (const [i, ctx] of Object.entries(ctxs)) {
-    if (!ctx.qq && !ctx.group) {
-      store.set(ctx, "test", 0);
-      assertEquals(store.get(ctx, "test"), 0);
-      continue;
-    }
-    assertThrows(() => store.set(ctx, "test", 0));
-    assertThrows(() => store.get(ctx, "test"));
-  }
-});
-
-Deno.test("kubo/storage ctx", () => {
-  const store = makeStore();
-  const ctxs: { namespace: string; group?: number; qq?: number }[] = [];
-  for (const namespace of ["a", "b"]) {
-    for (const group of [null, 1]) {
-      for (const qq of [null, 1]) {
+Deno.test("kubo/storage ctx error", async () => {
+  await withNewStore((store) => {
+    const ctxs: { namespace: string; group?: number; qq?: number }[] = [];
+    for (const group of [null, 0, -1]) {
+      for (const qq of [null, 0, -1]) {
         ctxs.push({
-          namespace,
+          namespace: "",
           ...(group ? { group } : {}),
           ...(qq ? { qq } : {}),
         });
       }
     }
-  }
 
-  for (const [i, ctx] of Object.entries(ctxs)) {
-    store.set(ctx, "test", i);
-  }
-
-  for (const [i, ctx] of Object.entries(ctxs)) {
-    assertEquals(store.get(ctx, "test"), i);
-  }
+    for (const [i, ctx] of Object.entries(ctxs)) {
+      if (!ctx.qq && !ctx.group) {
+        store.set(ctx, "test", 0);
+        assertEquals(store.get(ctx, "test"), 0);
+        continue;
+      }
+      assertThrows(() => store.set(ctx, "test", 0));
+      assertThrows(() => store.get(ctx, "test"));
+    }
+  });
 });
 
-Deno.test("kubo/storage expire", () => {
+Deno.test("kubo/storage ctx", async () => {
+  await withNewStore((store) => {
+    const ctxs: { namespace: string; group?: number; qq?: number }[] = [];
+    for (const namespace of ["a", "b"]) {
+      for (const group of [null, 1]) {
+        for (const qq of [null, 1]) {
+          ctxs.push({
+            namespace,
+            ...(group ? { group } : {}),
+            ...(qq ? { qq } : {}),
+          });
+        }
+      }
+    }
+
+    for (const [i, ctx] of Object.entries(ctxs)) {
+      store.set(ctx, "test", i);
+    }
+
+    for (const [i, ctx] of Object.entries(ctxs)) {
+      assertEquals(store.get(ctx, "test"), i);
+    }
+  });
+});
+
+Deno.test("kubo/storage expire", async () => {
   const nowMs = (new Date()).getTime();
   const now = Math.floor(nowMs / 1000);
   const time = new FakeTime(nowMs);
 
-  const store = makeStore();
-  const ctx = { namespace: "test" };
+  await withNewStore((store) => {
+    const ctx = { namespace: "test" };
 
-  try {
-    store.set(ctx, "key", "value", {
-      expireTimestamp: now + 10, // 十秒后
-    });
-    time.tick(1000); // 开始的一秒后
-    assertEquals(store.get(ctx, "key"), "value");
-    time.tick(10000); // 开始的十一秒后
-    assertEquals(store.get(ctx, "key"), null);
-  } finally {
-    time.restore();
-  }
+    try {
+      store.set(ctx, "key", "value", {
+        expireTimestamp: now + 10, // 十秒后
+      });
+      time.tick(1000); // 开始的一秒后
+      assertEquals(store.get(ctx, "key"), "value");
+      time.tick(10000); // 开始的十一秒后
+      assertEquals(store.get(ctx, "key"), null);
+    } finally {
+      time.restore();
+    }
+  });
 });

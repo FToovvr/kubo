@@ -179,6 +179,12 @@ async function main() {
   });
 
   console.log("开始运行…");
+  Deno.addSignalListener("SIGINT", async () => {
+    console.log("正在终止…");
+    await bot.close();
+    console.log("bot 已终止！");
+    Deno.exit(0);
+  });
   await bot.run();
 }
 
