@@ -3,7 +3,7 @@ import { getCurrentUTCTimestamp } from "../utils/misc.ts";
 
 import { KuboPlugin } from "./bot.ts";
 
-type Value = number | string | boolean | null;
+type Value = number | string | null;
 
 export class Store {
   db: DB;
@@ -50,7 +50,6 @@ export class Store {
     `,
       [ctx.namespace, ctx.group ?? 0, ctx.qq ?? 0, key],
     );
-    console.log({ ctx, row, key });
     if (row.length === 0) {
       return null;
     }
