@@ -9,8 +9,9 @@ import oneMinRp from "./modules/one_min_rp.ts";
 
 export function makeDefaultKuboBot(client: Client, db: DB, args: {
   sensitiveList: string[] | null;
+  ownerQQ?: number | number[];
 }) {
-  return new KuboBot(client, db)
+  return new KuboBot(client, db, args)
     .use(approveAllFriendRequests())
     .use(args.sensitiveList ? sensitiveFilter(args.sensitiveList) : null)
     // .use(oneMinRp())

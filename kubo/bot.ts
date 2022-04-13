@@ -99,6 +99,8 @@ export class KuboBot {
 
   utils = utils;
 
+  ownerQQ: number | number[] | null;
+
   protected hooks = {
     beforeSendMessage: [] as ((
       bot: KuboBot,
@@ -106,10 +108,13 @@ export class KuboBot {
     ) => string | MessagePiece[] | null | { intercept: true })[],
   };
 
-  constructor(client: Client, db: DB) {
+  constructor(client: Client, db: DB, cfg?: {
+    ownerQQ?: number | number[];
+  }) {
     this._client = client;
     this._db = db;
     this._store = new Store(db);
+    this.ownerQQ = cfg?.ownerQQ || null;
     this.init();
   }
 
@@ -157,6 +162,14 @@ export class KuboBot {
 
   getStore(plugin: KuboPlugin) {
     return new PluginStoreWrapper(this._store, plugin);
+  }
+
+  //==== Common ====
+
+  isOwner(qq: number) {
+    if (!this.ownerQQ) return false;
+    if (typeof this.ownerQQ === "number") return qq === this.ownerQQ;
+    return this.ownerQQ.indexOf(qq) !== -1;
   }
 
   //==== Helpers ====

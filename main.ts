@@ -30,7 +30,9 @@ const config = parseYaml(await Deno.readTextFile("config.yaml")) as {
     "db-file": string;
   };
   "x-sensitive-list-file": string;
-  "x-my-qq": number;
+  common: {
+    "owner-qq": number | number[];
+  };
   "x-my-group": number;
 };
 
@@ -83,8 +85,8 @@ async function main() {
 
   const bot = makeDefaultKuboBot(client, db, {
     sensitiveList: [...sensitiveList, "瑟瑟"],
+    ownerQQ: config.common["owner-qq"],
   });
-  const qq = config["x-my-qq"];
   const group = config["x-my-group"];
 
   bot.use({
@@ -98,7 +100,7 @@ async function main() {
   });
 
   bot.onGroupMessage({ all: true }, (bot, msg, ev) => {
-    if (ev.sender.qq === qq && ev.groupId === group) {
+    if (bot.isOwner(ev.sender.qq) && ev.groupId === group) {
       return "skip";
     }
     return "stop";
