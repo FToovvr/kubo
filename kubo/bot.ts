@@ -103,6 +103,11 @@ export class KuboBot {
   _db: DB;
   _store: Store;
 
+  self!: {
+    qq: number;
+    nickname: string;
+  };
+
   settingsManager: SettingsManager;
 
   utils = utils;
@@ -129,12 +134,21 @@ export class KuboBot {
     this.init();
   }
 
-  log(label: string, level: "debug", ...args: any[]) {
-    console.debug(label, ...args);
+  log(label: string, level: "debug" | "info", ...args: any[]) {
+    console.log(level, label, ...args);
   }
 
   async run() {
-    await this._client.run();
+    await this._client.start();
+
+    this.self = await this._client.getLoginInfo();
+    this.log(
+      "kubo",
+      "info",
+      `登陆账号：QQ「${this.self.qq}」，昵称「${this.self.nickname}」`,
+    );
+
+    return new Promise(() => {});
   }
 
   async close() {

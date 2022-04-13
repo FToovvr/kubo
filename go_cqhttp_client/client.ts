@@ -9,7 +9,7 @@ export class Client {
 
   readonly host: string;
   readonly ports: { http: number; ws: number };
-  readonly accessToken?: string;
+  readonly accessToken: string | null;
 
   eventClient: EventClient;
   apiClient: APIClient;
@@ -30,18 +30,18 @@ export class Client {
   ) {
     this.host = args.connection.host;
     this.ports = args.connection.ports;
-    this.accessToken = args.connection.accessToken;
+    this.accessToken = args.connection.accessToken ?? null;
 
     this.eventClient = new EventClient({
-      host: args.connection.host,
-      port: args.connection.ports.ws,
-      accessToken: args.connection.accessToken,
+      host: this.host,
+      port: this.ports.ws,
+      ...(this.accessToken ? { accessToken: this.accessToken } : {}),
     });
 
     this.apiClient = new APIClient({
-      host: args.connection.host,
-      port: args.connection.ports.http,
-      accessToken: args.connection.accessToken,
+      host: this.host,
+      port: this.ports.http,
+      ...(this.accessToken ? { accessToken: this.accessToken } : {}),
     });
 
     this.messageTokenBucket = args.sending?.messageTokenBucket ??
@@ -51,10 +51,8 @@ export class Client {
 
   //==== 运行 ====
 
-  async run() {
+  async start() {
     this.eventClient.connect();
-
-    return new Promise(() => {});
   }
 
   //==== 发送消息 ====
@@ -102,6 +100,10 @@ export class Client {
         }
       }
     }
+  }
+
+  async getLoginInfo() {
+    return await this.apiClient.getLoginInfo();
   }
 
   async sendGroupMessage(

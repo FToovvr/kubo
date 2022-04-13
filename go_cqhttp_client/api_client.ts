@@ -13,7 +13,7 @@ export class APIClient {
     this.accessToken = args.accessToken ?? null;
   }
 
-  async fetch(path: string, data: any) {
+  async fetch(path: string, data?: any) {
     const endpoint = this.entrypoint + path;
     const resp = fetch(endpoint, {
       method: "POST",
@@ -24,10 +24,19 @@ export class APIClient {
         "Content-Type": "application/json",
         "Accept": "application/json",
       },
-      body: JSON.stringify(data),
+      // 即使无需参数也要是 `{}`
+      body: JSON.stringify(data ?? {}),
     });
 
     return await (await resp).json();
+  }
+
+  async getLoginInfo() {
+    const data = (await this.fetch("/get_login_info")).data;
+    return {
+      qq: Number(data.user_id),
+      nickname: data.nickname,
+    };
   }
 
   async sendGroupMessage(
