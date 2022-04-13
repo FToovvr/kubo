@@ -26,7 +26,13 @@ export interface MessageOfGroupRawEvent extends MessageRawEvent {
   };
 }
 
+export interface MessageOfPrivateRawEvent extends MessageRawEvent {
+  message_type: "private";
+  sub_type: string; // "friend" | …
+}
+
 export class MessageEvent {
+  readonly messageType: string;
   raw: MessageRawEvent;
 
   messageId: number;
@@ -38,6 +44,7 @@ export class MessageEvent {
   message: MessagePiece[];
 
   constructor(raw: MessageRawEvent) {
+    this.messageType = raw.message_type;
     this.raw = raw;
 
     this.messageId = raw.message_id;
@@ -49,6 +56,7 @@ export class MessageEvent {
 }
 
 export class MessageOfGroupEvent extends MessageEvent {
+  readonly messageType = "group";
   declare sender: {
     qq: number;
     groupCard: string;
@@ -67,6 +75,17 @@ export class MessageOfGroupEvent extends MessageEvent {
       groupCard: raw.sender.card,
       nickname: raw.sender.nickname,
     };
+  }
+}
+
+export class MessageOfPrivateEvent extends MessageEvent {
+  readonly messageType = "private";
+  subType: string;
+
+  constructor(raw: MessageOfPrivateRawEvent) {
+    super(raw);
+
+    this.subType = raw.sub_type;
   }
 }
 

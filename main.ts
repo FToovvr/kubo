@@ -17,6 +17,10 @@ import {
 } from "./go_cqhttp_client/message_piece.ts";
 import { makeDefaultKuboBot } from "./kubo/index.ts";
 import { generateRandomIntegerByBoxMuller } from "./utils/misc.ts";
+import {
+  MessageOfGroupEvent,
+  MessageOfPrivateEvent,
+} from "./go_cqhttp_client/events.ts";
 
 console.log("初始化中…");
 
@@ -99,14 +103,14 @@ async function main() {
     },
   });
 
-  bot.onGroupMessage({ all: true }, (bot, msg, ev) => {
+  bot.onMessage("group", { all: true }, (bot, msg, ev) => {
     if (bot.isOwner(ev.sender.qq) && ev.groupId === group) {
       return "skip";
     }
     return "stop";
   });
 
-  bot.onGroupMessage("123", (bot, msg, ev) => {
+  bot.onMessage("all", "123", (bot, msg, ev) => {
     const promises: Promise<string>[] = [];
     for (let i = 1; i <= 3; i++) {
       promises.push(bot.sendGroupMessage(group, String(i)));
@@ -118,7 +122,7 @@ async function main() {
     return "stop";
   });
 
-  bot.onGroupMessage({ startsWith: "晚安" }, (bot, msg, ev) => {
+  bot.onMessage("all", { startsWith: "晚安" }, (bot, msg, ev) => {
     (async () => {
       const ret = await bot.sendGroupMessage(
         group,
@@ -130,7 +134,7 @@ async function main() {
     return "stop";
   });
 
-  bot.onGroupMessage({ startsWith: "复读" }, (bot, msg, ev) => {
+  bot.onMessage("all", { startsWith: "复读" }, (bot, msg, ev) => {
     // const message = bot.utils.removeReferenceFromMessage(ev.message);
     const ref = replyAt(ev.messageId, ev.sender.qq);
     let outMsg = [];
@@ -142,14 +146,19 @@ async function main() {
       outMsg = [...ref, ...(text1 ? [text(text1)] : []), ...msg.slice(1)];
     }
     (async () => {
-      const ret = await bot.sendGroupMessage(group, outMsg);
+      let ret: any;
+      if (ev instanceof MessageOfGroupEvent) {
+        ret = await bot.sendGroupMessage(group, outMsg);
+      } else if (ev instanceof MessageOfPrivateEvent) {
+        ret = await bot.sendPrivateMessage(ev.sender.qq, outMsg);
+      }
       bot.log("test", "debug", { ret });
     })();
 
     return "stop";
   });
 
-  bot.onGroupMessage({ unprocessed: true }, (bot, _, ev) => {
+  bot.onMessage("all", { unprocessed: true }, (bot, _, ev) => {
     bot.log("test", "debug", { ev });
     return "stop";
   });

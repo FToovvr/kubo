@@ -9,6 +9,8 @@ import {
   MessageEvent,
   MessageOfGroupEvent,
   MessageOfGroupRawEvent,
+  MessageOfPrivateEvent,
+  MessageOfPrivateRawEvent,
   MessageRawEvent,
   RawEvent,
   RequestRawEvent,
@@ -52,7 +54,7 @@ export class EventClient {
   //==== 回调 ====
 
   callbacks = {
-    onMessage: [] as ((ev: MessageEvent, type: "group") => void)[],
+    onMessage: [] as ((ev: MessageEvent, type: "group" | "private") => void)[],
     onFriendRequest: [] as ((ev: FriendRequestEvent) => void)[],
   };
 
@@ -63,6 +65,13 @@ export class EventClient {
           case "group": {
             const ev = new MessageOfGroupEvent(data as MessageOfGroupRawEvent);
             this.callbacks.onMessage.forEach((cb) => cb(ev, "group"));
+            break;
+          }
+          case "private": {
+            const ev = new MessageOfPrivateEvent(
+              data as MessageOfPrivateRawEvent,
+            );
+            this.callbacks.onMessage.forEach((cb) => cb(ev, "private"));
             break;
           }
         }

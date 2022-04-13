@@ -5,6 +5,7 @@ import {
   FriendRequestEvent,
   MessageEvent,
   MessageOfGroupEvent,
+  MessageOfPrivateEvent,
 } from "../go_cqhttp_client/events.ts";
 import { MessagePiece, Text } from "../go_cqhttp_client/message_piece.ts";
 
@@ -56,6 +57,10 @@ export type OnGroupMessageCallback<
   Msg extends MessageKind,
   CanPass extends boolean = true,
 > = OnMessageCallback<MessageOfGroupEvent, Msg, CanPass>;
+export type OnPrivateMessageCallback<
+  Msg extends MessageKind,
+  CanPass extends boolean = true,
+> = OnMessageCallback<MessageOfPrivateEvent, Msg, CanPass>;
 
 /**
  * `{ all: true }` 全部
@@ -181,6 +186,7 @@ export class KuboBot {
   private onMessageCallbacks: (
     | ["all", MessageMatcher, OnAllMessageCallback<"unknown">]
     | ["group", MessageMatcher, OnGroupMessageCallback<"unknown">]
+    | ["private", MessageMatcher, OnPrivateMessageCallback<"unknown">]
   )[] = [];
 
   private onMessageFallbacks: (
@@ -191,6 +197,10 @@ export class KuboBot {
     | [
       "group",
       OnGroupMessageCallback<"pieces+text", false>,
+    ]
+    | [
+      "private",
+      OnPrivateMessageCallback<"pieces+text", false>,
     ]
   )[] = [];
 
@@ -240,7 +250,7 @@ export class KuboBot {
       }
     };
 
-    this._client.eventClient.callbacks.onMessage.push((ev) => {
+    this._client.eventClient.callbacks.onMessage.push((ev, type) => {
       let isProcessed = false;
       const pureText = this.utils.tryExtractPureText(ev.message);
       OUT:
@@ -249,36 +259,41 @@ export class KuboBot {
       ) {
         const filteredMatcher = extractMessageFilter(messageMatcher);
 
-        if (ev instanceof MessageOfGroupEvent) {
-          if (on !== "all" && on !== "group") {
-            continue;
-          }
-          // 处理群消息
+        if (
+          (type === "group" && on !== "all" && on !== "group") ||
+          (type === "private" && on !== "all" && on !== "private")
+        ) {
+          continue;
+        }
 
-          let result: ProcessResult | null = null;
-          if (filteredMatcher.text) {
-            if (!pureText) continue;
-            // 处理消息是纯文本的情况
-            // FIXME: 为什么可能会返回 undefined？
-            result = processPureTextMessage(
-              ev,
-              pureText,
-              filteredMatcher.text,
-              callback as OnGroupMessageCallback<"text">,
-            ) ?? "skip";
-          } else if (filteredMatcher.complex) {
-            result = processComplexMessage(
-              ev,
-              pureText ?? ev.message,
-              filteredMatcher.complex,
-              callback as OnGroupMessageCallback<"pieces+text">,
-            ) ?? "skip";
-          }
-          if (result === "pass" || result == "stop") {
-            isProcessed = true;
-            if (result === "stop") {
-              break OUT;
-            }
+        if (on !== "all" && on !== "group") {
+          continue;
+        }
+        // 处理群消息
+
+        let result: ProcessResult | null = null;
+        if (filteredMatcher.text) {
+          if (!pureText) continue;
+          // 处理消息是纯文本的情况
+          // FIXME: 为什么可能会返回 undefined？
+          result = processPureTextMessage(
+            ev,
+            pureText,
+            filteredMatcher.text,
+            callback as unknown as any, // 弃疗
+          ) ?? "skip";
+        } else if (filteredMatcher.complex) {
+          result = processComplexMessage(
+            ev,
+            pureText ?? ev.message,
+            filteredMatcher.complex,
+            callback as unknown as any,
+          ) ?? "skip";
+        }
+        if (result === "pass" || result == "stop") {
+          isProcessed = true;
+          if (result === "stop") {
+            break OUT;
           }
         }
       }
@@ -300,36 +315,48 @@ export class KuboBot {
       }
     });
   }
-  async onGroupMessage<
+
+  async onMessage<
     T extends MessageMatcher | FallbackMessageMatcher,
+    U extends "all" | "group" | "private",
     CanPass extends (T extends FallbackMessageMatcher ? false : true),
   >(
+    on: U,
     msgMatcher: T,
-    cb: OnGroupMessageCallback<
+    cb: U extends "all" ? OnAllMessageCallback<
       T extends TextMessageMatcher ? "text" : "pieces+text",
       CanPass
-    >,
+    >
+      : (U extends "group" ? OnGroupMessageCallback<
+        T extends TextMessageMatcher ? "text" : "pieces+text",
+        CanPass
+      >
+        : (U extends "private" ? OnPrivateMessageCallback<
+          T extends TextMessageMatcher ? "text" : "pieces+text",
+          CanPass
+        >
+          : never)),
   ) {
     const filteredMatcher = extractMessageFilter(msgMatcher);
     if (filteredMatcher.fallback) {
       this.onMessageFallbacks.push([
-        "group",
-        cb as OnGroupMessageCallback<"pieces+text", false>,
+        on,
+        cb as unknown as any, // 弃疗，只要回调函数还能正确确定参数类型就好
       ]);
       return;
     }
 
     this.onMessageCallbacks.push([
-      "group",
+      on,
       msgMatcher as MessageMatcher,
-      cb as unknown as OnGroupMessageCallback<"unknown">,
+      cb as unknown as any,
     ]);
   }
 
   //==== Actions ====
 
   async sendGroupMessage(
-    to: number,
+    toGroup: number,
     message: string | MessagePiece[],
   ) {
     for (const hook of this.hooks.beforeSendMessage) {
@@ -339,7 +366,21 @@ export class KuboBot {
       }
       message = _msg as typeof message;
     }
-    return await this._client.sendGroupMessage(to, message);
+    return await this._client.sendGroupMessage(toGroup, message);
+  }
+
+  async sendPrivateMessage(
+    toQQ: number,
+    message: string | MessagePiece[],
+  ) {
+    for (const hook of this.hooks.beforeSendMessage) {
+      const _msg = hook(this, message) ?? message;
+      if (_msg instanceof Object && "intercept" in _msg && _msg.intercept) {
+        return null;
+      }
+      message = _msg as typeof message;
+    }
+    return await this._client.sendPrivateMessage(toQQ, message);
   }
 
   async handleFriendRequest(flag: string, action: "approve" | "deny") {

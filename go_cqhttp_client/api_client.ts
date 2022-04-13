@@ -31,7 +31,7 @@ export class APIClient {
   }
 
   async sendGroupMessage(
-    to: number,
+    toGroup: number,
     message: string | MessagePiece[],
     args?: { cq?: boolean },
   ) {
@@ -41,7 +41,24 @@ export class APIClient {
     };
 
     return await this.fetch("/send_group_msg", {
-      group_id: to,
+      group_id: toGroup,
+      message,
+      auto_escape: !args.cq,
+    });
+  }
+
+  async sendPrivateMessage(
+    toQQ: number,
+    message: string | MessagePiece[],
+    args?: { cq?: boolean },
+  ) {
+    args = {
+      cq: false,
+      ...args,
+    };
+
+    return await this.fetch("/send_private_msg", {
+      user_id: toQQ,
       message,
       auto_escape: !args.cq,
     });

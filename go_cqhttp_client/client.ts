@@ -62,12 +62,9 @@ export class Client {
   messageTokenBucket: TokenBucket;
   messageDelay: number | (() => number);
 
-  private supportedTypes = new Set(["text", "at", "face", "image"]);
+  protected supportedTypes = new Set(["text", "at", "face", "image"]);
 
-  async sendGroupMessage(
-    to: number,
-    message: string | MessagePiece[],
-  ) {
+  protected async waitToSendMessage() {
     await this.messageTokenBucket.take();
     if (this.messageDelay) {
       let d = this.messageDelay;
@@ -76,7 +73,9 @@ export class Client {
         await sleep(d);
       }
     }
+  }
 
+  protected checkMessage(message: string | MessagePiece[]) {
     if (message.length === 0) { // string 和 array 正好都可以判断
       throw new Error(`消息不能为空！消息内容：${JSON.stringify(message)}`);
     }
@@ -103,8 +102,28 @@ export class Client {
         }
       }
     }
+  }
 
-    return await this.apiClient.sendGroupMessage(to, message, { cq: false });
+  async sendGroupMessage(
+    toGroup: number,
+    message: string | MessagePiece[],
+  ) {
+    this.checkMessage(message);
+    await this.waitToSendMessage();
+    return await this.apiClient.sendGroupMessage(toGroup, message, {
+      cq: false,
+    });
+  }
+
+  async sendPrivateMessage(
+    toQQ: number,
+    message: string | MessagePiece[],
+  ) {
+    this.checkMessage(message);
+    await this.waitToSendMessage();
+    return await this.apiClient.sendPrivateMessage(toQQ, message, {
+      cq: false,
+    });
   }
 
   async handleFriendRequest(flag: string, action: "approve" | "deny") {
