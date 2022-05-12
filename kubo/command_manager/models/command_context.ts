@@ -3,7 +3,6 @@ import {
 } from "../../../go_cqhttp_client/message_piece.ts";
 
 interface Extra {
-  rawArguments: RegularMessagePiece[] | undefined;
   prefix: string | null;
   isEmbedded: boolean;
   shouldAwait: boolean;
@@ -12,8 +11,6 @@ interface Extra {
 export class CommandContext {
   private isValid = true;
 
-  // TODO!: MessagePieceIncludingExecutedCommand[] | undefined
-  public readonly rawArguments: RegularMessagePiece[] | undefined;
   public readonly prefix: string | null;
   // TODO: public readonly replyAt
 
@@ -30,7 +27,6 @@ export class CommandContext {
     controller.onInvalidate = () => this.isValid = false;
     controller.getHasManuallyClaimed = () => this.hasManuallyClaimed;
 
-    this.rawArguments = extra.rawArguments;
     this.prefix = extra.prefix;
     this.isEmbedded = extra.isEmbedded;
     this.shouldAwait = extra.shouldAwait;

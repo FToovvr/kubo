@@ -88,9 +88,8 @@ export type ReferencePolicy = "required" | "omittable" | "no-reference";
  * 参数的解析策略：
  *  - "parse-all" 解析参数，包括嵌套在参数中的命令
  *  - "no-nesting" 解析参数，但不解析嵌套的命令
- *  - "raw-only" 不解析参数
  */
-export type ArgumentsPolicy = "parse-all" | "no-nesting" | "raw-only";
+export type ArgumentsPolicy = "parse-all" | "no-nesting";
 
 /**
  * 命令的参数从何开始：

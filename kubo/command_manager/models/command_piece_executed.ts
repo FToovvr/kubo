@@ -41,17 +41,6 @@ export interface ExecutedCommandPiece extends MessagePiece {
    */
   isLeading: boolean;
 
-  // NOTE: 考虑到读取已执行函数时不应考虑参数具体是什么，因此去掉。
-  // /**
-  //  * 参数列表。
-  //  * - 对于非嵌入命令，只有当行的内容是参数，且当行除命令名外的全部内容都是参数；
-  //  * - 对于嵌入命令，允许以换行分割各参数。
-  //  *
-  //  * 非嵌入命令如果需要获得更下方的内容，须以其他形式获取。
-  //  *
-  //  * 这里的 `undefined` 代表 `argumentsPolicy == "raw-only"`
-  //  */
-  // arguments: CommandArgument[]; // TODO: (CommandArgument|string)[] | undefined
   arguments: MessageLineIncludingExecutedCommands[];
 
   result: CommandExecutedResult;

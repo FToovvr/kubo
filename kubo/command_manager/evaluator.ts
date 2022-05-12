@@ -253,7 +253,6 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
     const firstI = uCmd.possibleCommands.length - 1;
     const firstCmdHead = uCmd.possibleCommands[firstI].command;
 
-    let rawArguments: RegularMessagePiece[] | null = null;
     let argumentsWithoutNesting: RegularMessagePiece[][] | null = null;
     let executedArguments: MessageLineIncludingExecutedCommands[] | null = null;
 
@@ -292,11 +291,9 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
       }
 
       //== 准备参数列表 ==
-      let shouldParseArguments: boolean;
       let allowsNestedCommandsInArguments: boolean;
       switch (possCmd.argumentsPolicy) {
         case "parse-all": {
-          shouldParseArguments = true;
           allowsNestedCommandsInArguments = true;
           if (!executedArguments) {
             executedArguments = this.executeArguments(uCmd.arguments);
@@ -304,19 +301,10 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
           break;
         }
         case "no-nesting": {
-          shouldParseArguments = true;
           allowsNestedCommandsInArguments = false;
           if (!argumentsWithoutNesting) {
             // TODO: implement
             throw new Error("unimplemented");
-          }
-          break;
-        }
-        case "raw-only": {
-          shouldParseArguments = false;
-          allowsNestedCommandsInArguments = false;
-          if (!rawArguments) {
-            rawArguments = uCmd.rawArguments;
           }
           break;
         }
@@ -326,23 +314,16 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
 
       //== 参数列表开头的填充 ==
       const toPrepend = firstCmdHead.substring(possCmd.command.length);
-      const cmdArgs = shouldParseArguments
-        ? [
-          ...(toPrepend.length ? [[text(toPrepend)]] : []),
-          ...executedArguments!,
-        ]
-        : undefined;
-      const cmdRawArgs = shouldParseArguments
-        ? undefined
-        : prependingTextToArgument(rawArguments!, toPrepend);
+      const cmdArgs = [
+        ...(toPrepend.length ? [[text(toPrepend)]] : []),
+        ...executedArguments!,
+      ];
 
       const _executedArguments = (() => {
         if (executedArguments) return executedArguments;
-        if (rawArguments) return [rawArguments];
         return [];
       })();
       const _execResult = this._executeCommand(possCmd, cmdArgs, {
-        rawArguments: cmdRawArgs,
         executedArguments: _executedArguments,
         isEmbedded: uCmd.isEmbedded,
         shouldAwait: uCmd.isAwait,
@@ -372,7 +353,6 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
     cmd: CommandEntity,
     cmdArgs: CommandArgument<false>[] | undefined,
     extra: {
-      rawArguments: RegularMessagePiece[] | undefined;
       executedArguments: MessageLineIncludingExecutedCommands[];
       isEmbedded: boolean;
       shouldAwait: boolean;
@@ -384,7 +364,6 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
     const { context, controller: contextController } = makeCommandContext(
       id,
       /*this,*/ {
-        rawArguments: extra.rawArguments,
         prefix: extra.prefix,
         isEmbedded: extra.isEmbedded,
         shouldAwait: extra.shouldAwait,
@@ -393,10 +372,6 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
     const options = new CommandOptions(context);
     const exCmd = new ExecutingCommand(id, /* context, cmd, */ options);
     this.commands.set(id, exCmd);
-
-    if (cmd.argumentsPolicy === "raw-only") {
-      cmdArgs = undefined;
-    }
 
     let error: ExecutingError["error"] | null = null;
     let cbReturned: CommandCallbackReturnValue | undefined = undefined;
