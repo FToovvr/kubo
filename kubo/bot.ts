@@ -8,6 +8,7 @@ import {
   MessageOfPrivateEvent,
 } from "../go_cqhttp_client/events.ts";
 import { MessagePiece, Text } from "../go_cqhttp_client/message_piece.ts";
+import { CommandManager } from "./command_manager/manager.ts";
 import { SettingsManager } from "./settings_manager.ts";
 
 import { PluginStoreWrapper, Store, StoreWrapper } from "./storage.ts";
@@ -119,6 +120,7 @@ export class KuboBot {
       bot: KuboBot,
       message: string | MessagePiece[],
     ) => string | MessagePiece[] | null | { intercept: true })[],
+    afterInit: [] as ((bot: KuboBot) => void)[],
   };
 
   constructor(client: Client, db: DB, cfg?: {
@@ -131,7 +133,7 @@ export class KuboBot {
       new StoreWrapper(this._store, "settings"),
     );
     this.ownerQQ = cfg?.ownerQQ || null;
-    this.init();
+    this.initHelpers();
   }
 
   log(label: string, level: "debug" | "info", ...args: any[]) {
@@ -204,8 +206,9 @@ export class KuboBot {
 
   //==== Helpers ====
 
-  init() {
+  private initHelpers() {
     this.initOnMessage();
+    this.initCommandManager();
   }
 
   private onMessageCallbacks: (
@@ -376,6 +379,12 @@ export class KuboBot {
       msgMatcher as MessageMatcher,
       cb as unknown as any,
     ]);
+  }
+
+  commandManager!: CommandManager;
+
+  initCommandManager() {
+    this.commandManager = new CommandManager(this);
   }
 
   //==== Actions ====

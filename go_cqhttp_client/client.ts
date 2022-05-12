@@ -3,6 +3,7 @@ import { APIClient } from "./api_client.ts";
 import { TokenBucket } from "../utils/token_bucket.ts";
 import { MessagePiece, Text } from "./message_piece.ts";
 import { sleep } from "../utils/misc.ts";
+import { mergeAdjoiningTextPiecesInPlace } from "../utils/message_utils.ts";
 
 export class Client {
   //==== 配置相关 ====
@@ -79,6 +80,8 @@ export class Client {
     }
 
     if (typeof message !== "string") {
+      mergeAdjoiningTextPiecesInPlace(message);
+
       for (const [i, piece] of message.entries()) {
         if (this.supportedTypes.has(piece.type)) {
           // ok

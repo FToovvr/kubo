@@ -1,6 +1,9 @@
-import { assertEquals } from "https://deno.land/std@0.134.0/testing/asserts.ts";
-
 import { AhoCorasick, Trie, TrieVertex } from "./aho_corasick.ts";
+
+import {
+  assertEquals,
+  assertThrows,
+} from "https://deno.land/std@0.134.0/testing/asserts.ts";
 
 interface TrieArr {
   [key: number]: [string, 0 | 1, TrieArr | null];
@@ -33,6 +36,40 @@ Deno.test("trie", (t) => {
     new Trie(["a", "ab1", "ab2"]).root,
     arrayToTrie([["a", 1, [["b", 0, [["1", 1, null], ["2", 1, null]]]]]]),
   );
+});
+
+Deno.test("trie with values", (t) => {
+  const trie = new Trie<string>();
+
+  trie.set("foo", "FOO");
+  assertEquals(trie.get("foo"), "FOO");
+  assertEquals(trie.get("foobar"), undefined);
+  trie.set("foobar", "FOOBAR");
+  assertEquals(trie.get("foo"), "FOO");
+  assertEquals(trie.get("foobar"), "FOOBAR");
+  assertEquals(trie.matchPrefix(""), []);
+  assertEquals(trie.matchPrefix("bar"), []);
+  assertEquals(trie.matchPrefix("foo"), [{ word: "foo", value: "FOO" }]);
+  assertEquals(trie.matchPrefix("foobaZ"), [{ word: "foo", value: "FOO" }]);
+  assertEquals(trie.matchPrefix("foobar"), [
+    { word: "foo", value: "FOO" },
+    { word: "foobar", value: "FOOBAR" },
+  ]);
+  assertEquals(trie.matchPrefix("foobarbaz"), [
+    { word: "foo", value: "FOO" },
+    { word: "foobar", value: "FOOBAR" },
+  ]);
+
+  assertThrows(() => (new AhoCorasick(["he"])).matchPrefix("hers"));
+});
+
+Deno.test("trie matchPrefix order", (t) => {
+  const trie = new Trie<number>();
+
+  trie.set("foo", 2);
+  trie.set("foobar", 3);
+  trie.set("f", 1);
+  assertEquals(trie.matchPrefix("foobarbaz").map((x) => x.value), [1, 2, 3]);
 });
 
 Deno.test("aho_corasick", () => {

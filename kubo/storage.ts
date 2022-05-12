@@ -1,5 +1,5 @@
 import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
-import { getCurrentUTCTimestamp } from "../utils/misc.ts";
+import * as utils from "../utils/misc.ts";
 
 import { KuboPlugin } from "./bot.ts";
 
@@ -43,7 +43,7 @@ export class Store {
   }
 
   cleanExpired() {
-    const now = getCurrentUTCTimestamp();
+    const now = utils.now();
     this.db.query(`DELETE FROM store WHERE expire_timestamp < ?`, [now]);
   }
 
@@ -62,7 +62,7 @@ export class Store {
       return null;
     }
     const [value, expire_timestamp] = row[0] as [Value, number];
-    const now = getCurrentUTCTimestamp();
+    const now = utils.now();
     if (expire_timestamp && now > expire_timestamp) { // 清理的事情交给别处
       return null;
     }

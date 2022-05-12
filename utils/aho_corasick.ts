@@ -1,35 +1,80 @@
-export interface TrieVertex {
-  next: { [key: string]: TrieVertex };
+export interface TrieVertex<T = void> {
+  next: { [key: string]: TrieVertex<T> };
   isLeaf: boolean;
+  value?: T;
 }
 
-function makeVertex(): TrieVertex {
+function makeVertex<T>(): TrieVertex<T> {
   return {
     next: {},
     isLeaf: false,
   };
 }
 
-export class Trie {
-  root = makeVertex();
+export class Trie<T = void> {
+  root = makeVertex<T>();
 
-  constructor(words: string[]) {
-    for (const word of words) {
-      let last = this.root;
-      last.isLeaf = false;
+  constructor(words: string[] | { key: string; value: T }[] = []) {
+    this.root.isLeaf = false;
+    if (words.length === 0) return;
 
-      for (let i = 0; i < word.length; i++) {
-        const char = word[i];
-        const isFinal = i === word.length - 1;
+    for (const _word of words) {
+      const [word, value] = (typeof _word === "string")
+        ? [_word, undefined]
+        : [_word.key, _word.value];
+      this.set(word, value);
+    }
+  }
 
-        const cur = last.next[char] ?? makeVertex();
-        if (isFinal) {
-          cur.isLeaf = true;
+  set(word: string, value?: T) {
+    let last = this.root;
+    for (let i = 0; i < word.length; i++) {
+      const char = word[i];
+      const isFinal = i === word.length - 1;
+
+      const cur = last.next[char] ?? makeVertex();
+      if (isFinal) {
+        cur.isLeaf = true;
+        if (value !== undefined) {
+          cur.value = value;
         }
-        last.next[char] = cur;
-        last = cur;
+      }
+      last.next[char] = cur;
+      last = cur;
+    }
+  }
+
+  get(word: string): T | undefined {
+    let cur = this.root;
+
+    for (const char of word) {
+      cur = cur.next[char];
+      if (!cur) return;
+    }
+    return cur.value;
+  }
+
+  /**
+   * 返回有哪些前缀匹配的单词，以及与之相关联的值
+   * 保证返回的次序是由短至长
+   */
+  matchPrefix(text: string) {
+    const matches: { word: string; value?: T }[] = [];
+    let cur = this.root;
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      cur = cur.next[char];
+      if (!cur) break;
+      if (cur.isLeaf) {
+        matches.push({
+          word: text.substring(0, i + 1),
+          ...(cur.value !== undefined ? { value: cur.value } : {}),
+        });
       }
     }
+
+    return matches;
   }
 }
 
@@ -79,6 +124,10 @@ export class AhoCorasick extends Trie {
     }
 
     return next;
+  }
+
+  matchPrefix(text: string): never {
+    throw new Error("never");
   }
 
   match(text: string) {

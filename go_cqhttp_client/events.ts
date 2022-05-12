@@ -59,7 +59,7 @@ export class MessageOfGroupEvent extends MessageEvent {
   readonly messageType = "group";
   declare sender: {
     qq: number;
-    groupCard: string;
+    groupCard: string | null;
     nickname: string;
   };
 
@@ -72,7 +72,7 @@ export class MessageOfGroupEvent extends MessageEvent {
 
     this.sender = {
       ...this.sender,
-      groupCard: raw.sender.card,
+      groupCard: raw.sender.card !== "" ? raw.sender.card : null,
       nickname: raw.sender.nickname,
     };
   }

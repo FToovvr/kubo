@@ -5,6 +5,8 @@
 
 # 测试用
 test_fixtures/
+cov_profile/
+lcov.info
 
 # 自用的数据
 sensitive-words/

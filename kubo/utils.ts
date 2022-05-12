@@ -1,38 +1,29 @@
-import { MessagePiece, Text } from "../go_cqhttp_client/message_piece.ts";
-
 import {
-  generateRandomByBoxMuller,
-  generateRandomInteger,
-  generateRandomIntegerByBoxMuller,
-  getCurrentUTCTimestamp,
-  getCurrentUTCTimestampMs,
-} from "../utils/misc.ts";
+  At,
+  MessagePiece,
+  Reply,
+  Text,
+} from "../go_cqhttp_client/message_piece.ts";
+import {
+  extractReferenceFromMessage,
+  mergeAdjoiningTextPiecesInPlace,
+  removeReferenceFromMessage,
+  tryExtractPureText,
+} from "../utils/message_utils.ts";
 
-export default {
-  // 去掉可能存在的引用回复
-  removeReferenceFromMessage: (message: MessagePiece[]) => {
-    if (message.length === 0 || message[0].type !== "reply") [];
-    if (message.length === 1) return [];
-    if (message[1].type === "at") {
-      const [_1, _2, ...ret] = message;
-      return ret;
-    }
-    const [_, ...ret] = message;
-    return ret;
-  },
+import { now, nowMs, randBM, randInt, randIntBM } from "../utils/misc.ts";
 
-  // 如果是纯文本信息，返回该文本，否则返回 null
-  tryExtractPureText: (msg: MessagePiece[]) => {
-    if (msg.length === 1 && msg[0].type === "text") {
-      const text = msg[0] as Text;
-      return text.data.text;
-    }
-    return null;
-  },
+const utils = {
+  tryExtractPureText,
+  mergeAdjoiningTextPiecesInPlace,
+  removeReferenceFromMessage,
+  extractReferenceFromMessage,
 
-  generateRandomInteger,
-  generateRandomByBoxMuller,
-  generateRandomIntegerByBoxMuller,
-  getCurrentUTCTimestampMs,
-  getCurrentUTCTimestamp,
+  randInt,
+  randBM,
+  randIntBM,
+  nowMs,
+  now,
 };
+
+export default utils;

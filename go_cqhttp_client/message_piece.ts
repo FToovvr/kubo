@@ -4,6 +4,9 @@ export interface MessagePiece {
   type: string;
 }
 
+export type RegularMessagePiece = Text | Reply | At | Emoticon | Image;
+
+// 用于模板字符串
 export function buildMessage(
   strings: TemplateStringsArray,
   ...values: (MessagePiece | MessagePiece[])[]
@@ -23,53 +26,67 @@ export function buildMessage(
   return msg;
 }
 
+export function getTypedMessagePiece(piece: MessagePiece) {
+  switch (piece.type) {
+    case "text":
+      return { text: piece as Text };
+    case "reply":
+      return { reply: piece as Reply };
+    case "at":
+      return { at: piece as At };
+    case "face":
+      return { emoticon: piece as Emoticon };
+    case "image":
+      return { image: piece as Image };
+  }
+  return { unknown: piece };
+}
+
 // TextElement
 export interface Text extends MessagePiece {
-  type: "text";
-  data: {
-    text: string;
-  };
+  readonly type: "text";
+  readonly data: { readonly text: string };
 }
 export function text(text: string): Text {
   return { type: "text", data: { text } };
 }
 
 export interface Reply extends MessagePiece {
-  type: "reply";
-  data: { id: string };
+  readonly type: "reply";
+  readonly data: { readonly id: string };
 }
 export function reply(id: number): Reply {
   return { type: "reply", data: { id: String(id) } };
 }
-export function replyAt(id: number, qq: number) {
+export function replyAt(id: number, qq: number): [Reply, At] {
   return [reply(id), at(qq)];
 }
 
 // AtElement
 export interface At extends MessagePiece {
-  type: "at";
+  readonly type: "at";
   // 如果不是 all，则是 QQ 号
-  data: { qq: string | "all" };
+  readonly data: { readonly qq: string | "all" };
 }
 export function at(qq: number | "all"): At {
   return { type: "at", data: { qq: qq === "all" ? qq : String(qq) } };
 }
 
 export interface Emoticon extends MessagePiece {
-  type: "face";
-  data: { id: string };
+  readonly type: "face";
+  readonly data: { readonly id: string };
 }
-function emoticon(id: string): Emoticon {
+export function emoticon(id: string): Emoticon {
   return { type: "face", data: { id } };
 }
 
 export interface Image extends MessagePiece {
-  type: "image";
-  data: {
-    file: string;
-    type?: never; // TODO: "flash" | "show"
-    // subType: number; // TODO
-    // TODO: url, cache, id, c
+  readonly type: "image";
+  readonly data: {
+    readonly file: string;
+    readonly type?: never; // TODO: "flash" | "show"
+    // readonly subType: number; // TODO
+    // readonly TODO: url, cache, id, c
   };
 }
 export function imageFromBase64(base64: string): Image {
@@ -78,20 +95,20 @@ export function imageFromBase64(base64: string): Image {
 
 // // ForwardElement
 // export interface Forward extends MessagePiece {
-//   type: "forward";
-//   data: { id: string };
+//   readonly type: "forward";
+//   readonly data: { readonly id: string };
 // }
 
 // // LightAppElement
 // export interface Json extends MessagePiece {
-//   type: "json";
-//   data: { data: string };
+//   readonly type: "json";
+//   readonly data: { readonly data: string };
 // }
 
 // // RedBagElement
 // export interface RedPacket extends MessagePiece {
-//   type: "redbag";
-//   data: { title: string };
+//   readonly type: "redbag";
+//   readonly data: { readonly title: string };
 // }
 
 // TODO: record, video, dice, xml

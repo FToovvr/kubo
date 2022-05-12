@@ -3,6 +3,7 @@ import { parse as parseYaml } from "https://deno.land/std@0.134.0/encoding/yaml.
 import * as path from "https://deno.land/std@0.134.0/path/mod.ts";
 
 import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
+import { createCanvas } from "https://deno.land/x/canvas@v1.4.1/mod.ts";
 
 import {
   StandardWebSocketClient,
@@ -17,7 +18,7 @@ import {
   text,
 } from "./go_cqhttp_client/message_piece.ts";
 import { makeDefaultKuboBot } from "./kubo/index.ts";
-import { generateRandomIntegerByBoxMuller } from "./utils/misc.ts";
+import { randIntBM } from "./utils/misc.ts";
 import {
   MessageOfGroupEvent,
   MessageOfPrivateEvent,
@@ -77,7 +78,7 @@ async function main() {
       // 在处理完令牌桶后的延时
       // TODO: 应该直接和令牌桶整合
       messageDelay: () => {
-        return generateRandomIntegerByBoxMuller(111, 888);
+        return randIntBM(111, 888);
       },
     },
   });
@@ -150,7 +151,6 @@ async function main() {
   });
 
   bot.onMessage("all", { startsWith: "复读" }, (bot, msg, ev) => {
-    // const message = bot.utils.removeReferenceFromMessage(ev.message);
     const ref = replyAt(ev.messageId, ev.sender.qq);
     let outMsg = [];
     if (typeof msg === "string") {
@@ -175,7 +175,70 @@ async function main() {
 
   bot.onMessage("all", { unprocessed: true }, (bot, _, ev) => {
     bot.log("test", "debug", { ev });
+    console.log({
+      before: ev.message,
+      after: bot.utils.removeReferenceFromMessage(ev.message),
+    });
     return "stop";
+  });
+
+  bot.commandManager.registerCommand("随机单色图片", {
+    readableName: "随机单色图片",
+    description: "生产随机单色图片",
+    callback: () => {
+      const canvas = createCanvas(1, 1);
+      const ctx = canvas.getContext("2d");
+      const [r, g, b] = [
+        bot.utils.randInt(0, 255),
+        bot.utils.randInt(0, 255),
+        bot.utils.randInt(0, 255),
+      ];
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(0, 0, 1, 1);
+      const base64 = encodeBase64(canvas.toBuffer());
+      return [
+        imageFromBase64(base64),
+        text(ctx.fillStyle),
+      ];
+    },
+  });
+
+  bot.commandManager.registerCommand("echo", {
+    readableName: "回响",
+    description: "将输入的参数输出",
+    callback: (ctx, opts, args) => {
+      let _ret = args?.map((arg) => {
+        if (arg.length > 1) return [text("[complex]")];
+        if (arg[0].type === "__kubo_executed_command") {
+          if (arg[0].hasFailed) return [text("[failed-cmd]")];
+          if (arg[0].result.embedding?.length ?? 0 > 0) {
+            return [
+              text(`[cmd:${arg[0].command.command},content=`),
+              ...arg[0].result.embedding!,
+              text(`]`),
+            ];
+          } else {
+            return [text(`[cmd:${arg[0].command.command}]`)];
+          }
+        }
+        if (arg[0].type === "text") return [arg[0]];
+        return [text("[other]")];
+      });
+      const ret = _ret?.flatMap((arg, i) =>
+        i < _ret!.length - 1 ? [...arg, text(" ")] : [...arg]
+      );
+      if (ret) {
+        return {
+          response: ret,
+          embedding: ret,
+        };
+      }
+    },
+  });
+  bot.commandManager.registerCommand("error", {
+    readableName: "错误",
+    description: "返回错误",
+    callback: (ctx, opts, args) => ({ error: "error" }),
   });
 
   console.log("开始运行…");

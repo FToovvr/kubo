@@ -1,11 +1,8 @@
 import { assertEquals } from "https://deno.land/std@0.134.0/testing/asserts.ts";
 
-import { MessagePiece } from "../../../go_cqhttp_client/message_piece.ts";
-import { SensitiveFilter } from "./sensitive_filter.ts";
+import { arr2Msg } from "../../../utils/message_utils.ts";
 
-function arr2Msg(arr: [string, any][]) {
-  return arr.map(([type, data]) => ({ type, data }) as MessagePiece);
-}
+import { SensitiveFilter } from "./sensitive_filter.ts";
 
 Deno.test("sensitive_filter", () => {
   assertEquals(
