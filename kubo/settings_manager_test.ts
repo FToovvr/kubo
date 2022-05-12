@@ -1,9 +1,12 @@
+import { AllowedValueType, SettingsManager } from "./settings_manager.ts";
+
 import {
   assertEquals,
   assertThrows,
 } from "https://deno.land/std@0.134.0/testing/asserts.ts";
+
 import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
-import { AllowedValueType, SettingsManager } from "./settings_manager.ts";
+
 import { Store, StoreWrapper } from "./storage.ts";
 
 async function withManager(
