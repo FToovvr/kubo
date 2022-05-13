@@ -233,11 +233,26 @@ function generateUnifiedResponseForSingleCommand(
 ) {
   const out: RegularMessagePiece[] = [];
   if (requiresPreview) {
-    out.push(text("➩ "), ...generateCommandPreview(responses.command));
+    out.push(
+      text("⊛ "),
+      ...generateCommandPreview(responses.command),
+      text(" ➩\n"),
+    );
   } else {
-    out.push(text("➩"));
+    if (
+      (
+        responses.contents.length === 1 && responses.notes.length === 0 &&
+        !hasLinefeed(responses.contents[0])
+      ) || (
+        responses.notes.length === 1 && responses.contents.length === 0 &&
+        !hasLinefeed(responses.notes[0].content)
+      )
+    ) {
+      out.push(text("➩ "));
+    } else {
+      out.push(text("➩\n"));
+    }
   }
-  out.push(text("\n"));
 
   for (const [i, content] of responses.contents.entries()) {
     if (typeof content === "string") {
@@ -260,7 +275,7 @@ function generateUnifiedResponseForSingleCommand(
       if (note.level !== "user-error") throw new Error("never");
       levelText = "命令错误";
     }
-    out.push(text(`⚠${levelText}：${note.content}`));
+    out.push(text(`⚠ ${levelText} : ${note.content}`));
   }
 
   mergeAdjoiningTextPiecesInPlace(out);

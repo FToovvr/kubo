@@ -110,16 +110,15 @@ Deno.test(`${testPrefix} 回复`, async (t) => {
     {
       message: "/echo hello",
       restResponse: [
-        "➩",
-        "hello",
+        "➩ hello",
       ].join("\n"),
     },
     {
       message: "/echo hello\n/echo world",
       restResponse: [
-        "➩ /echo hello",
+        "⊛ /echo hello ➩",
         "hello",
-        "➩ /echo world",
+        "⊛ /echo world ➩",
         "world",
       ].join("\n"),
     },
@@ -135,24 +134,22 @@ Deno.test(`${testPrefix} 回复`, async (t) => {
         "/̽echo hello « world »",
       ].join("\n"),
       restResponse: [
-        "➩",
-        "hello [cmd:echo,content=world]",
+        "➩ hello [cmd:echo,content=world]",
       ].join("\n"),
     },
     {
       message: "/error",
       restResponse: [
-        "➩",
-        "⚠命令错误：error",
+        "➩ ⚠ 命令错误 : error",
       ].join("\n"),
     },
     {
       message: "/echo hello\n/error",
       restResponse: [
-        "➩ /echo hello",
+        "⊛ /echo hello ➩",
         "hello",
-        "➩ /error",
-        "⚠命令错误：error",
+        "⊛ /error ➩",
+        "⚠ 命令错误 : error",
       ].join("\n"),
     },
     {
@@ -161,9 +158,9 @@ Deno.test(`${testPrefix} 回复`, async (t) => {
         "/̽echo « /error⇒error »",
       ].join("\n"),
       restResponse: [
-        "➩ … { /error } …",
-        "⚠命令错误：error",
-        "➩ /echo « /error⇒erro…",
+        "⊛ … { /error } … ➩",
+        "⚠ 命令错误 : error",
+        "⊛ /echo « /error⇒erro… ➩",
         "[failed-cmd]",
       ].join("\n"),
     },
