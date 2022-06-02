@@ -3,16 +3,14 @@ import {
   emoticon,
   imageFromBase64,
   RegularMessagePiece,
-  Text,
   text,
-} from "../../../go_cqhttp_client/message_piece.ts";
+} from "../../../../go_cqhttp_client/message_piece.ts";
 
 import { assertEquals } from "https://deno.land/std@0.134.0/testing/asserts.ts";
 
 import { CommandArgument, CommandArgumentOption } from "./command_argument.ts";
 import {
   CompactComplexPiece,
-  ComplexPiecePart,
   ExecutedCommandPiece,
   ExecutedPiece,
   GroupPiece,

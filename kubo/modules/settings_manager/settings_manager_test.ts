@@ -7,7 +7,7 @@ import {
 
 import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
 
-import { Store, StoreWrapper } from "./storage.ts";
+import { Store, StoreWrapper } from "../../storage.ts";
 
 async function withManager(
   cb: (manager: SettingsManager) => Promise<void> | void,

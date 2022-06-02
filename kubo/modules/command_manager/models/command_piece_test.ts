@@ -10,7 +10,7 @@ import {
   RegularMessagePiece,
   Text,
   text,
-} from "../../../go_cqhttp_client/message_piece.ts";
+} from "../../../../go_cqhttp_client/message_piece.ts";
 import { _test_makeContext, _test_makeFakeCommands } from "../test_utils.ts";
 import { tokenizeMessage, TokenizingEnvironment } from "../tokenizer.ts";
 import { CommandArgument } from "./command_argument.ts";

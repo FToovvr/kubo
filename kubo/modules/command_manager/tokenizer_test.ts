@@ -1,9 +1,9 @@
 import { assertEquals } from "https://deno.land/std@0.134.0/testing/asserts.ts";
-import { at, text } from "../../go_cqhttp_client/message_piece.ts";
+import { at, text } from "../../../go_cqhttp_client/message_piece.ts";
 import {
   mergeAdjoiningTextPiecesInPlace,
   MessageLine,
-} from "../../utils/message_utils.ts";
+} from "../../../utils/message_utils.ts";
 import {
   CompactComplexPiece,
   GroupPiece,

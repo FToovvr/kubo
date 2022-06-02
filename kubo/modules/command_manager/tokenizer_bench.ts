@@ -1,4 +1,4 @@
-import { text } from "../../go_cqhttp_client/message_piece.ts";
+import { text } from "../../../go_cqhttp_client/message_piece.ts";
 import { _test_makeContext } from "./test_utils.ts";
 import { tokenizeMessage } from "./tokenizer.ts";
 

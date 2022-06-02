@@ -1,4 +1,4 @@
-import { Trie } from "../../utils/aho_corasick.ts";
+import { Trie } from "../../../utils/aho_corasick.ts";
 import { completeCommandEntity, LooseCommandEntity } from "./manager.ts";
 import { CommandArgument } from "./models/command_argument.ts";
 import {

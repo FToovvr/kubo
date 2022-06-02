@@ -11,15 +11,15 @@ import {
 } from "https://deno.land/x/mock@0.15.0/mod.ts";
 
 import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
-import { MessageEvent } from "../../go_cqhttp_client/events.ts";
-import { SettingsManager } from "../settings_manager.ts";
-import { Store, StoreWrapper } from "../storage.ts";
+import { MessageEvent } from "../../../go_cqhttp_client/events.ts";
+import { SettingsManager } from "../settings_manager/index.ts";
+import { Store, StoreWrapper } from "../../storage.ts";
 import { _test_makeFakeCommand } from "./test_utils.ts";
 import {
   _test_makeMessageOfGroupEvent,
   _test_makeMessageOfPrivateEvent,
-} from "../../go_cqhttp_client/test_utils.ts";
-import { replyAt, text } from "../../go_cqhttp_client/message_piece.ts";
+} from "../../../go_cqhttp_client/test_utils.ts";
+import { replyAt, text } from "../../../go_cqhttp_client/message_piece.ts";
 
 async function withCommandManager(
   selfQQ: number,

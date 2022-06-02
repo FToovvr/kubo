@@ -2,11 +2,11 @@ import {
   MessagePiece,
   RegularMessagePiece,
   text,
-} from "../../go_cqhttp_client/message_piece.ts";
+} from "../../../go_cqhttp_client/message_piece.ts";
 import {
   mergeAdjoiningTextPiecesInPlace,
   MessageLine,
-} from "../../utils/message_utils.ts";
+} from "../../../utils/message_utils.ts";
 import { theAwaitMark } from "./constants.ts";
 import {
   CompactComplexPiece,

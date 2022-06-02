@@ -1,4 +1,4 @@
-import { StoreWrapper } from "./storage.ts";
+import { StoreWrapper } from "../../storage.ts";
 
 interface SettingRegisterNode {
   type: "collection" | "leaf";

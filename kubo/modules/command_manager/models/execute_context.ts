@@ -1,8 +1,5 @@
-import {
-  RegularMessagePiece,
-  text,
-} from "../../../go_cqhttp_client/message_piece.ts";
-import { mergeAdjoiningTextPiecesInPlace } from "../../../utils/message_utils.ts";
+import { text } from "../../../../go_cqhttp_client/message_piece.ts";
+import { mergeAdjoiningTextPiecesInPlace } from "../../../../utils/message_utils.ts";
 import { CommandEvaluationError } from "../errors.ts";
 import { CommandArgument } from "./command_argument.ts";
 import { CommandCallbackReturnValue, CommandEntity } from "./command_entity.ts";

@@ -1,4 +1,4 @@
-import { RegularMessagePiece } from "../../../go_cqhttp_client/message_piece.ts";
+import { RegularMessagePiece } from "../../../../go_cqhttp_client/message_piece.ts";
 import { CommandArgument } from "./command_argument.ts";
 import { EmbeddingRaw } from "./command_piece.ts";
 import { CommandContext } from "./execute_context.ts";

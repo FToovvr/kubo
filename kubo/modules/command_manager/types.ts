@@ -1,6 +1,6 @@
-import { RegularMessagePiece } from "../../go_cqhttp_client/message_piece.ts";
-import { Trie } from "../../utils/aho_corasick.ts";
-import { MessageLine } from "../../utils/message_utils.ts";
+import { RegularMessagePiece } from "../../../go_cqhttp_client/message_piece.ts";
+import { Trie } from "../../../utils/aho_corasick.ts";
+import { MessageLine } from "../../../utils/message_utils.ts";
 import { CommandEntity } from "./models/command_entity.ts";
 import {
   ExecutedCommandPiece,

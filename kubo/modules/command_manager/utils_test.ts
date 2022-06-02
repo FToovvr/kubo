@@ -6,7 +6,7 @@ import {
   at,
   RegularMessagePiece,
   text,
-} from "../../go_cqhttp_client/message_piece.ts";
+} from "../../../go_cqhttp_client/message_piece.ts";
 
 Deno.test("kubo/command_manager/utils.splitMessagesBySpaces", async (t) => {
   const table: { in: RegularMessagePiece[]; out: RegularMessagePiece[][] }[] = [

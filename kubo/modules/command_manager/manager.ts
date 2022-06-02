@@ -3,20 +3,20 @@ import {
   RegularMessagePiece,
   replyAt,
   text,
-} from "../../go_cqhttp_client/message_piece.ts";
-import { Trie } from "../../utils/aho_corasick.ts";
-import { Optional } from "../../utils/type_utils.ts";
-import { KuboBot, ProcessResult } from "../bot.ts";
-import { SettingsManager } from "../settings_manager.ts";
+} from "../../../go_cqhttp_client/message_piece.ts";
+import { Trie } from "../../../utils/aho_corasick.ts";
+import { Optional } from "../../../utils/type_utils.ts";
+import { KuboBot, ProcessResult } from "../../bot.ts";
+import { SettingsManager } from "../settings_manager/index.ts";
 import { CommandTrie } from "./types.ts";
 import {
   MessageEvent,
   MessageOfGroupEvent,
-} from "../../go_cqhttp_client/events.ts";
+} from "../../../go_cqhttp_client/events.ts";
 import { CommandEntity, CommandStyle } from "./models/command_entity.ts";
 import { evaluateMessage } from "./evaluator.ts";
 import { generateUnifiedResponse } from "./utils.ts";
-import { mergeAdjoiningTextPiecesInPlace } from "../../utils/message_utils.ts";
+import { mergeAdjoiningTextPiecesInPlace } from "../../../utils/message_utils.ts";
 import { Spy } from "https://deno.land/x/mock@0.15.0/mod.ts";
 
 /**

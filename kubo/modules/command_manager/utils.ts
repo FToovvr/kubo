@@ -6,14 +6,12 @@ import {
   Reply,
   Text,
   text,
-} from "../../go_cqhttp_client/message_piece.ts";
+} from "../../../go_cqhttp_client/message_piece.ts";
 import {
   extractReferenceFromMessage,
   mergeAdjoiningTextPiecesInPlace,
-} from "../../utils/message_utils.ts";
+} from "../../../utils/message_utils.ts";
 import { CommandResponses } from "./evaluator.ts";
-import { ExecutedCommandPiece, ExecutedPiece } from "./models/command_piece.ts";
-import { MessageLineIncludingExecutedCommands } from "./types.ts";
 
 type SeparateHeadFromMessageReturning<T extends MessagePiece> = {
   // 清理掉位于开头的引用回复以及位于开头的 at 后的消息

@@ -4,7 +4,7 @@ import {
   Image,
   RegularMessagePiece,
   text,
-} from "../../../go_cqhttp_client/message_piece.ts";
+} from "../../../../go_cqhttp_client/message_piece.ts";
 import {
   CompactComplexPiece,
   ComplexPiecePart,

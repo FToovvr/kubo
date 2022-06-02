@@ -8,8 +8,8 @@ import {
   MessageOfPrivateEvent,
 } from "../go_cqhttp_client/events.ts";
 import { MessagePiece, Text } from "../go_cqhttp_client/message_piece.ts";
-import { CommandManager } from "./command_manager/manager.ts";
-import { SettingsManager } from "./settings_manager.ts";
+import { CommandManager } from "./modules/command_manager/index.ts";
+import { SettingsManager } from "./modules/settings_manager/index.ts";
 
 import { PluginStoreWrapper, Store, StoreWrapper } from "./storage.ts";
 import utils from "./utils.ts";
