@@ -12,7 +12,8 @@ export class Store {
   constructor(db: DB) {
     this.db = db;
 
-    db.query(`
+    const queries = [
+      `
       CREATE TABLE IF NOT EXISTS store (
         "namespace" TEXT NOT NULL,
         -- group 与 qq 其一为 0 代表只涉及另一者对应的 QQ 或群，两者皆为 0 代表适用全局
@@ -25,17 +26,21 @@ export class Store {
         "expire_timestamp" NUMBER NULL DEFAULT NULL,
 
         PRIMARY KEY ("namespace", "group", "qq", "key")
-      );
+      );`,
+      `CREATE INDEX IF NOT EXISTS idx__store__namespace_qq_group_key ON store("namespace", "group", "qq", "key");`,
+      `CREATE INDEX IF NOT EXISTS idx__store__qq ON store("qq");`,
+      `CREATE INDEX IF NOT EXISTS idx__store__group ON store("group");`,
+      `CREATE INDEX IF NOT EXISTS idx__store__expire_timestamp ON store("expire_timestamp");`,
+    ];
 
-      CREATE INDEX IF NOT EXISTS idx__store__namespace_qq_group_key ON store("namespace", "group", "qq", "key");
-      CREATE INDEX IF NOT EXISTS idx__store__qq ON store("qq");
-      CREATE INDEX IF NOT EXISTS idx__store__group ON store("group");
-    `);
+    for (const query of queries) {
+      db.query(query);
+    }
 
     this.cleanExpired();
 
     // 20 分钟清理一次
-    this.intervalId = setInterval(this.cleanExpired, 1000 * 60 * 20);
+    this.intervalId = setInterval(this.cleanExpired.bind(this), 1000 * 60 * 20);
   }
 
   close() {
@@ -51,17 +56,17 @@ export class Store {
     if ((ctx.group ?? 1) <= 0 || (ctx.qq ?? 1) <= 0) {
       throw new Error(`不正确的 QQ 或群号：${ctx}`);
     }
-    const row = this.db.query(
+    const rows = this.db.query(
       `
       SELECT "value", "expire_timestamp" FROM store
       WHERE "namespace" = ? AND "group" = ? AND "qq" = ? AND "key" = ?
     `,
       [ctx.namespace, ctx.group ?? 0, ctx.qq ?? 0, key],
     );
-    if (row.length === 0) {
+    if (rows.length === 0) {
       return null;
     }
-    const [value, expire_timestamp] = row[0] as [Value, number];
+    const [value, expire_timestamp] = rows[0] as [Value, number];
     const now = utils.now();
     if (expire_timestamp && now > expire_timestamp) { // 清理的事情交给别处
       return null;
