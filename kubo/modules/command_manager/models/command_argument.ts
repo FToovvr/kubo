@@ -125,6 +125,14 @@ export class CommandArgument implements ComplexPiecePart<true> {
       : new CompactComplexPiece<true>(valueParts);
     return new CommandArgumentOption(key, value);
   }
+
+  get flag() {
+    const option = this.option;
+    if (!option) return null;
+    if (option.value.content !== null) return null;
+    if (!option.key.startsWith("-")) return null;
+    return option.key.slice(1);
+  }
 }
 
 export class CommandArgumentOption {
