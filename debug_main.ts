@@ -84,6 +84,10 @@ async function main() {
   });
 
   if (false) { // 获取原始事件数据用
+    console.log("开始获取事件…");
+
+    const filtersMetaEvent = true;
+
     const ws: WebSocketClient = new StandardWebSocketClient(
       client.eventClient.endpoint,
     );
@@ -93,10 +97,12 @@ async function main() {
     ws.on("message", function (message: unknown) {
       // @ts-ignore
       const data = JSON.parse(message.data);
-      // if (data.post_type === "message") {
-      // @ts-ignore
-      console.log(data);
-      // }
+      if (filtersMetaEvent && data.post_type === "meta_event") return;
+      console.log(Deno.inspect(data, { depth: Infinity, colors: true }));
+      const possibleFirstImageUrl = data.message?.[0]?.data?.url;
+      if (possibleFirstImageUrl) {
+        console.log(`possibleFirstImageUrl: ${possibleFirstImageUrl}`);
+      }
     });
 
     await new Promise(() => {});
