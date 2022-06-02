@@ -195,6 +195,11 @@ export class KuboBot {
     return this;
   }
 
+  batch(cb: (bot: KuboBot) => void): KuboBot {
+    cb(this);
+    return this;
+  }
+
   getStore(plugin: KuboPlugin) {
     return new PluginStoreWrapper(this._store, plugin);
   }
