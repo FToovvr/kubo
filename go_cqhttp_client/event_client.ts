@@ -54,11 +54,14 @@ export class EventClient {
   //==== 回调 ====
 
   callbacks = {
+    onAllRaw: [] as ((ev: RawEvent) => void)[],
     onMessage: [] as ((ev: MessageEvent, type: "group" | "private") => void)[],
     onFriendRequest: [] as ((ev: FriendRequestEvent) => void)[],
   };
 
   protected handleIncomingMessageEvent(data: RawEvent) {
+    this.callbacks.onAllRaw.forEach((cb) => cb(data));
+
     switch (data.post_type) {
       case "message": {
         switch ((data as MessageRawEvent).message_type) {

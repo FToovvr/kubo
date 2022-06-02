@@ -1,6 +1,7 @@
 import { MessagePiece } from "./message_piece.ts";
 
 export interface RawEvent {
+  time: number;
   post_type: string;
 }
 
@@ -10,7 +11,6 @@ export interface MessageRawEvent extends RawEvent {
 
   message_id: number;
   user_id: number;
-  time: number;
 
   message: MessagePiece[];
   raw_message: string;
@@ -124,4 +124,9 @@ export class FriendRequestEvent {
 
     this.flag = raw.flag;
   }
+}
+
+export interface NoticeRawEvent extends RawEvent {
+  post_type: "notice";
+  notice_type: string;
 }

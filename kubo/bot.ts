@@ -9,6 +9,7 @@ import {
 } from "../go_cqhttp_client/events.ts";
 import { MessagePiece, Text } from "../go_cqhttp_client/message_piece.ts";
 import { CommandManager } from "./modules/command_manager/index.ts";
+import { MessageManager } from "./modules/message_manager/message_manager.ts";
 import { SettingsManager } from "./modules/settings_manager/index.ts";
 
 import { PluginStoreWrapper, Store, StoreWrapper } from "./storage.ts";
@@ -110,6 +111,7 @@ export class KuboBot {
   };
 
   settings: SettingsManager;
+  messages: MessageManager;
 
   utils = utils;
 
@@ -132,6 +134,7 @@ export class KuboBot {
     this.settings = new SettingsManager(
       new StoreWrapper(this._store, "settings"),
     );
+    this.messages = new MessageManager(db, this._client);
     this.ownerQQ = cfg?.ownerQQ || null;
     this.initHelpers();
   }

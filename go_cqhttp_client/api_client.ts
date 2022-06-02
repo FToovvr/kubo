@@ -1,3 +1,4 @@
+import { SendMessageResponse } from "./api_response.ts";
 import { MessagePiece } from "./message_piece.ts";
 
 export class APIClient {
@@ -31,6 +32,10 @@ export class APIClient {
     return await (await resp).json();
   }
 
+  hooks = {
+    afterSentMessage: [] as ((resp: SendMessageResponse) => void)[],
+  };
+
   async getLoginInfo() {
     const data = (await this.fetch("/get_login_info")).data;
     return {
@@ -49,11 +54,15 @@ export class APIClient {
       ...args,
     };
 
-    return await this.fetch("/send_group_msg", {
+    const resp = await this.fetch("/send_group_msg", {
       group_id: toGroup,
       message,
       auto_escape: !args.cq,
     });
+    this.hooks.afterSentMessage.forEach((cb) =>
+      cb(resp as SendMessageResponse)
+    );
+    return resp;
   }
 
   async sendPrivateMessage(
@@ -66,11 +75,15 @@ export class APIClient {
       ...args,
     };
 
-    return await this.fetch("/send_private_msg", {
+    const resp = await this.fetch("/send_private_msg", {
       user_id: toQQ,
       message,
       auto_escape: !args.cq,
     });
+    this.hooks.afterSentMessage.forEach((cb) =>
+      cb(resp as SendMessageResponse)
+    );
+    return resp;
   }
 
   async handleFriendRequest(flag: string, action: "approve" | "deny") {
@@ -78,5 +91,9 @@ export class APIClient {
       flag,
       approve: action === "approve",
     });
+  }
+
+  async getMessage(messageId: number) {
+    return await this.fetch("/get_msg", { message_id: messageId });
   }
 }
