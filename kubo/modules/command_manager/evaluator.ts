@@ -69,14 +69,20 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
     | MessageLine<ExecutedPiece>[]
     | undefined = undefined;
 
-  private executeContext = new ExecuteContext();
+  private executeContext: ExecuteContext;
+
+  get executedCommands() {
+    return Object.values(this.executeContext.slots)
+      .filter((slot) => slot.executed)
+      .map((slot) => slot.executed!);
+  }
 
   get hasCommand() {
-    return Object.keys(this.executeContext.slots).length > 0;
+    return this.executedCommands.length > 0;
   }
   get hasEmbeddedCommand() {
-    for (const slot of Object.values(this.executeContext.slots)) {
-      if (slot.executed!.isEmbedded) return true;
+    for (const cmd of this.executedCommands) {
+      if (cmd.isEmbedded) return true;
     }
     return false;
   }
@@ -90,11 +96,6 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
       return [...line];
     });
     return generateEmbeddedOutput(msg);
-  }
-
-  get executedCommands() {
-    return Object.values(this.executeContext.slots)
-      .map((slot) => slot.executed!);
   }
 
   get responses(): CommandResponses[] {
@@ -120,13 +121,17 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
       this.inputMessage,
     );
 
+    this.executeContext = new ExecuteContext({
+      ...(replyAt ? { replyAt } : {}),
+    });
+
     if (leadingAt && Number(leadingAt.data.qq) !== this.bot.self.qq) {
       // 专门指定了 bot，但并非本 bot
       this.parsedMessage = null;
       return;
     }
 
-    this.parsedMessage = tokenizeMessage(env, this.inputMessage);
+    this.parsedMessage = tokenizeMessage(env, cleanedMessage);
   }
 
   execute(): "skip" | "pass" {
