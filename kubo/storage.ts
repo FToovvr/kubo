@@ -79,8 +79,8 @@ export class Store {
     key: string,
     val: Value,
     args: {
-      // TODO: expireInterval
       expireTimestamp?: number;
+      expireInterval?: number; // TODO: testing
     } = {},
   ) {
     if ((ctx.group ?? 1) <= 0 || (ctx.qq ?? 1) <= 0) {
@@ -98,6 +98,17 @@ export class Store {
       return;
     }
 
+    const expireTimestamp = (() => {
+      const tsExplicit = args.expireTimestamp ?? null;
+      const tsByInterval = args.expireInterval
+        ? (utils.now() + args.expireInterval)
+        : null;
+      if (tsExplicit !== null && tsByInterval !== null) {
+        return Math.max(tsExplicit, tsByInterval);
+      }
+      return tsExplicit ?? tsByInterval;
+    })();
+
     this.db.query(
       `
       INSERT OR REPLACE INTO store ("namespace", "group", "qq", "key", "value", "expire_timestamp")
@@ -109,7 +120,7 @@ export class Store {
         ctx.qq ?? 0,
         key,
         val,
-        args.expireTimestamp ?? null,
+        expireTimestamp,
       ],
     );
   }
