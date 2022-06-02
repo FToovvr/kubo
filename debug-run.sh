@@ -1,3 +1,8 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
-deno run --allow-net --allow-read --allow-write debug_main.ts
+# workaround，不然树莓派的 deno 会表示存在错误，因而不执行
+if [[ "$(uname -m)" == "aarch64" ]]; then
+  CHECK_OR_NOT=--no-check
+fi
+
+deno run $CHECK_OR_NOT --allow-net --allow-read --allow-write debug_main.ts
