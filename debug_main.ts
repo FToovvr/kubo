@@ -39,7 +39,7 @@ const config = parseYaml(await Deno.readTextFile("config.yaml")) as {
     "owner-qq": number | number[];
   };
   "x-sensitive-words-dir": string;
-  "x-my-group": number;
+  "x-allowed-groups": number[];
 };
 
 const accessToken = await Deno.readTextFile(
@@ -113,7 +113,7 @@ async function main() {
     sensitiveList,
     ownerQQ: config.common["owner-qq"],
   });
-  const group = config["x-my-group"];
+  const groups = config["x-allowed-groups"];
 
   bot.use({
     id: "_",
@@ -126,7 +126,7 @@ async function main() {
   });
 
   bot.onMessage("group", { all: true }, (bot, msg, ev) => {
-    if (bot.isOwner(ev.sender.qq) && ev.groupId === group) {
+    if (bot.isOwner(ev.sender.qq) && groups.indexOf(ev.groupId) >= 0) {
       return "skip";
     }
     return "stop";
@@ -135,11 +135,10 @@ async function main() {
   bot.onMessage("all", "123", (bot, msg, ev) => {
     const promises: Promise<string>[] = [];
     for (let i = 1; i <= 3; i++) {
-      promises.push(bot.sendGroupMessage(group, String(i)));
+      promises.push(bot.sendGroupMessage(groups[0], String(i)));
     }
     (async () => {
       const results = await Promise.all(promises);
-      bot.log("test", "debug", { results });
     })();
     return "stop";
   });
@@ -147,11 +146,9 @@ async function main() {
   bot.onMessage("all", { startsWith: "晚安" }, (bot, msg, ev) => {
     (async () => {
       const ret = await bot.sendGroupMessage(
-        group,
+        groups[0],
         buildMessage`${imageFromBase64(猫猫睡觉)}`,
       );
-
-      bot.log("test", "debug", { ret });
     })();
     return "stop";
   });
@@ -169,11 +166,10 @@ async function main() {
     (async () => {
       let ret: any;
       if (ev instanceof MessageOfGroupEvent) {
-        ret = await bot.sendGroupMessage(group, outMsg);
+        ret = await bot.sendGroupMessage(groups[0], outMsg);
       } else if (ev instanceof MessageOfPrivateEvent) {
         ret = await bot.sendPrivateMessage(ev.sender.qq, outMsg);
       }
-      bot.log("test", "debug", { ret });
     })();
 
     return "stop";
