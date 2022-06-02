@@ -1,5 +1,5 @@
 import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
-import * as utils from "../utils/misc.ts";
+import utils from "./utils.ts";
 
 import { KuboPlugin } from "./bot.ts";
 
@@ -73,7 +73,10 @@ export class Store {
     ctx: { namespace: string; group?: number; qq?: number },
     key: string,
     val: Value,
-    args: { expireTimestamp?: number } = {},
+    args: {
+      // TODO: expireInterval
+      expireTimestamp?: number;
+    } = {},
   ) {
     if ((ctx.group ?? 1) <= 0 || (ctx.qq ?? 1) <= 0) {
       throw new Error(`不正确的 QQ 或群号：${ctx}`);
