@@ -1,4 +1,4 @@
-import { text } from "../../../../go_cqhttp_client/message_piece.ts";
+import { At, Reply, text } from "../../../../go_cqhttp_client/message_piece.ts";
 import { mergeAdjoiningTextPiecesInPlace } from "../../../../utils/message_utils.ts";
 import { CommandEvaluationError } from "../errors.ts";
 import { CommandArgument } from "./command_argument.ts";
@@ -26,6 +26,14 @@ export class ExecuteContext {
   #controllers = new Map<number, CommandContextController>();
   slots: { [slotId: number]: { executed: ExecutedCommandPiece | null } } = {};
 
+  replyAt: [Reply, At] | null;
+
+  constructor(args: {
+    replyAt?: [Reply, At];
+  } = {}) {
+    this.replyAt = args.replyAt ?? null;
+  }
+
   getNextSlotId() {
     const next = this.nextSlotId;
     this.slots[next] = { executed: null };
@@ -42,6 +50,7 @@ export class ExecuteContext {
   ): boolean {
     const { commandId, context, contextController } = this.makeCommandContext({
       prefix: unexecuted.prefix,
+      head: entity.command,
       isEmbedded: unexecuted.isEmbedded,
       shouldAwait: unexecuted.isAwait,
       ...(extra.lineNumber !== undefined
@@ -142,6 +151,7 @@ export class ExecuteContext {
     this.nextCommandId++;
     const contextController = new CommandContextController();
     const context = CommandContext._internal_make(
+      this,
       contextController,
       commandId,
       args,
@@ -155,6 +165,7 @@ export class ExecuteContext {
 
 interface CommandContextArguments {
   prefix: string | null;
+  head: string;
   isEmbedded: boolean;
   shouldAwait: boolean;
 
@@ -164,15 +175,23 @@ interface CommandContextArguments {
 export class CommandContext {
   private isValid = true;
 
+  public readonly head: string;
   public readonly prefix: string | null;
   public get hasPrefix() {
     if (this.prefix === "") throw new Error("never");
     return this.prefix !== null;
   }
-
-  // TODO: public readonly replyAt
-  // TODO: public readonly allLines, followingLines
-  // TODO: getRawArgumentsSince
+  /**
+   * 被调用时，头部的样子。
+   * 目的是在有多个前缀 / 别名时，提示信息中显示的命令能保持调用时的那样。
+   *
+   * 例：
+   * - 命令 `/foo bar` 的 `headInvoked` 是 `/foo`；
+   * - 命令 `{ /foo bar }` 的 `headInvoked` 也是 `/foo`；
+   */
+  public get headInvoked() {
+    return this.prefix + this.head;
+  }
 
   public readonly isEmbedded: boolean;
   public readonly shouldAwait: boolean;
@@ -182,6 +201,7 @@ export class CommandContext {
   private hasManuallyClaimed = false;
 
   private constructor(
+    private executeContext: ExecuteContext,
     controller: CommandContextController,
     public readonly _internal_id: number,
     extra: CommandContextArguments,
@@ -190,6 +210,7 @@ export class CommandContext {
     controller.getHasManuallyClaimed = () => this.hasManuallyClaimed;
 
     this.prefix = extra.prefix;
+    this.head = extra.head;
     this.isEmbedded = extra.isEmbedded;
     this.shouldAwait = extra.shouldAwait;
 
@@ -202,17 +223,25 @@ export class CommandContext {
   }
 
   static _internal_make(
+    executeContext: ExecuteContext,
     controller: CommandContextController,
     id: number,
     extra: CommandContextArguments,
   ) {
-    return new CommandContext(controller, id, extra);
+    return new CommandContext(executeContext, controller, id, extra);
   }
 
   /** 声明该命令已执行（即使作为行命令没有回复内容） */
   claimExecuted() {
     this.hasManuallyClaimed = true;
   }
+
+  get replyAt() {
+    return this.executeContext.replyAt;
+  }
+
+  // TODO: public readonly allLines, followingLines
+  // TODO: getRawArgumentsSince
 }
 
 export class CommandContextController {
