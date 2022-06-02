@@ -182,7 +182,7 @@ async function main() {
     return "stop";
   });
 
-  bot.commandManager.registerCommand("随机单色图片", {
+  bot.commands.registerCommand("随机单色图片", {
     readableName: "随机单色图片",
     description: "生产随机单色图片",
     callback: () => {
@@ -203,7 +203,7 @@ async function main() {
     },
   });
 
-  bot.commandManager.registerCommand("echo", {
+  bot.commands.registerCommand("echo", {
     readableName: "回响",
     description: "将输入的参数输出",
     callback: (ctx, args) => {
@@ -237,7 +237,7 @@ async function main() {
       }
     },
   });
-  bot.commandManager.registerCommand("error", {
+  bot.commands.registerCommand("error", {
     readableName: "错误",
     description: "返回错误",
     callback: (ctx, args) => ({ error: "error" }),

@@ -109,7 +109,7 @@ export class KuboBot {
     nickname: string;
   };
 
-  settingsManager: SettingsManager;
+  settings: SettingsManager;
 
   utils = utils;
 
@@ -129,7 +129,7 @@ export class KuboBot {
     this._client = client;
     this._db = db;
     this._store = new Store(db);
-    this.settingsManager = new SettingsManager(
+    this.settings = new SettingsManager(
       new StoreWrapper(this._store, "settings"),
     );
     this.ownerQQ = cfg?.ownerQQ || null;
@@ -381,10 +381,10 @@ export class KuboBot {
     ]);
   }
 
-  commandManager!: CommandManager;
+  commands!: CommandManager;
 
   initCommandManager() {
-    this.commandManager = new CommandManager(this);
+    this.commands = new CommandManager(this);
   }
 
   //==== Actions ====

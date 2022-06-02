@@ -65,7 +65,7 @@ export function completeCommandEntity(
  * 测试需要
  */
 export interface _MockKuboBot {
-  settingsManager: SettingsManager;
+  settings: SettingsManager;
   onMessage: _MockKuboBotOnMessage;
   self: { qq: number };
   sendGroupMessage: Spy<
@@ -93,7 +93,7 @@ export class CommandManager {
   constructor(bot: CommandManager["bot"]) {
     this.bot = bot;
 
-    this.bot.settingsManager.register("prefix", {
+    this.bot.settings.register("prefix", {
       info: { readableName: "命令前缀", description: "触发命令的前缀" },
       valueType: "string",
       default: "/",
@@ -125,7 +125,7 @@ export class CommandManager {
       group = ev.groupId;
     }
     const scope = group ? { group } : {};
-    const prefix = this.bot.settingsManager.get(scope, "prefix") as string;
+    const prefix = this.bot.settings.get(scope, "prefix") as string;
 
     if (typeof msg === "string") {
       msg = [text(msg)];

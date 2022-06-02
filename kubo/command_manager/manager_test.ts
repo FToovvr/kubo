@@ -39,7 +39,7 @@ async function withCommandManager(
 
   let onMessageCallback!: InstanceType<typeof CommandManager>["processMessage"];
   const bot: _MockKuboBot = {
-    settingsManager,
+    settings: settingsManager,
     onMessage: (on, msgMatcher, _onMessageCallback) => {
       if (on !== "all") throw new Error("never");
       if (!equal(msgMatcher, { all: true })) throw new Error("never");

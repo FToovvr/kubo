@@ -10,7 +10,7 @@ export default function () {
     init(bot) {
       store = bot.getStore(plugin);
       // 迷思：好多骰子都有 jrrp 功能，会不会其实都是为了测试数据持久化功能？
-      bot.commandManager.registerCommand("1mrp", {
+      bot.commands.registerCommand("1mrp", {
         readableName: "一分钟人品",
         description: "jrrp，但是只有一分钟",
         callback: (ctx, args) => {
