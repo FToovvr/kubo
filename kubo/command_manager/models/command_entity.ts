@@ -1,11 +1,11 @@
 import { RegularMessagePiece } from "../../../go_cqhttp_client/message_piece.ts";
-import { CommandContext } from "./command_context.ts";
-import { CommandArgument } from "../types.ts";
+import { CommandArgument } from "./command_argument.ts";
+import { EmbeddingRaw } from "./command_piece.ts";
+import { CommandContext } from "./execute_context.ts";
 
 export type CommandCallback = (
   ctx: CommandContext,
-  opts: CommandOptions,
-  args: CommandArgument<false>[] | undefined,
+  args: CommandArgument[],
 ) => CommandCallbackReturnValue;
 
 /**
@@ -20,7 +20,6 @@ export interface CommandEntity {
   supportedStyles: Set<CommandStyle>;
   // lineStylePriority: CommandPriority;
   referencePolicy: ReferencePolicy;
-  argumentsPolicy: ArgumentsPolicy;
 
   argumentsBeginningPolicy: ArgumentsBeginningPolicy;
 
@@ -29,26 +28,11 @@ export interface CommandEntity {
   callback: CommandCallback;
 }
 
-export class CommandOptions {
-  constructor(
-    private context: CommandContext,
-  ) {}
-
-  get hasPrefix() {
-    return this.context.prefix !== null;
-  }
-  get isEmbedded() {
-    return this.context.isEmbedded;
-  }
-  get shouldAwait() {
-    return this.context.shouldAwait;
-  }
-}
-
+// TODO: 是不是该允许单独的 RegularMessagePiece？
 export type CommandCallbackReturnValue =
   | {
     embedding?: string | RegularMessagePiece[];
-    embeddingRaw?: any;
+    embeddingRaw?: EmbeddingRaw;
     response?: string | RegularMessagePiece[];
   }
   | string
@@ -62,12 +46,8 @@ export type CommandProcessResult = "skip" | "capture";
  * 命令支持的书写形式：
  * - "lined" 行命令 -- 命令位于一行的开始，带前缀；
  * - "embedded" 嵌入命令 -- 命令位于任意位置，被半角花括号包围，带前缀；
- * - "integrated" 整体命令 -- 命令位于消息的开始，可选带或不带前缀。
- *
- * 执行命令时，对于位于消息开始且同时支持行命令、整体命令书写形式的命令，
- * 需要的时候可以通过是否带前缀来判断到底是哪种命令。
  */
-export type CommandStyle = "line" | "embedded" | "integrated";
+export type CommandStyle = "line" | "embedded";
 
 /**
  * 命令的优先级。
@@ -85,14 +65,7 @@ export type CommandPriority = "normal" | "low";
 export type ReferencePolicy = "required" | "omittable" | "no-reference";
 
 /**
- * 参数的解析策略：
- *  - "parse-all" 解析参数，包括嵌套在参数中的命令
- *  - "no-nesting" 解析参数，但不解析嵌套的命令
- */
-export type ArgumentsPolicy = "parse-all" | "no-nesting";
-
-/**
- * 命令的参数从何开始：
+ * 参数起始策略（命令的参数从何开始）：
  * - "follows-spaces" 命令和参数需要以空白相隔；
  * - "unrestricted" 没有特别要求。
  */

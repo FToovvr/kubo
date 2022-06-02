@@ -12,11 +12,8 @@ import {
   mergeAdjoiningTextPiecesInPlace,
 } from "../../utils/message_utils.ts";
 import { CommandResponses } from "./evaluator.ts";
-import { ExecutedCommandPiece } from "./models/command_piece_executed.ts";
-import {
-  MessageLineIncludingExecutedCommands,
-  MessagePieceIncludingExecutedCommand,
-} from "./types.ts";
+import { ExecutedCommandPiece, ExecutedPiece } from "./models/command_piece.ts";
+import { MessageLineIncludingExecutedCommands } from "./types.ts";
 
 type SeparateHeadFromMessageReturning<T extends MessagePiece> = {
   // 清理掉位于开头的引用回复以及位于开头的 at 后的消息
@@ -126,87 +123,10 @@ function hasAdjoiningTextPieces(msg: MessagePiece[]) {
   return false;
 }
 
-export function fillingEmbeddedContent(
-  msg: MessagePieceIncludingExecutedCommand[],
-): RegularMessagePiece[] {
-  const out: RegularMessagePiece[] = [];
-  for (const [i, piece] of msg.entries()) {
-    if (piece.type === "__kubo_executed_command") {
-      if (piece.isEmbedded) {
-        let embedding: RegularMessagePiece[];
-        if (piece.hasFailed) {
-          // TODO: 提供更多信息？
-          const errorMessage = `${piece.prefix}${piece.command.command}⇒error`;
-          embedding = [text(errorMessage)];
-        } else {
-          if (!piece.result?.embedding) throw new Error("never");
-          embedding = piece.result.embedding;
-        }
-        const leftBound = (() => {
-          let bound = "";
-          if (
-            i > 0 && msg[i - 1].type === "text" &&
-            !/\s$/.test((msg[i - 1] as Text).data.text)
-          ) {
-            bound += " ";
-          }
-          bound += "«";
-          const firstTextInEmbedding = typeof embedding === "string"
-            ? embedding
-            : (embedding[0].type === "text" ? embedding[0].data.text : null);
-          if (!firstTextInEmbedding || !/^\s/.test(firstTextInEmbedding)) {
-            bound += " ";
-          }
-          return text(bound);
-        })();
-        out.push(leftBound);
-
-        out.push(...embedding);
-
-        const rightBound = (() => {
-          let bound = "";
-          const lastTextInEmbedding = typeof embedding === "string"
-            ? embedding
-            : (() => {
-              const last = embedding[embedding.length - 1];
-              return (last.type === "text" ? last.data.text : null);
-            })();
-          if (!lastTextInEmbedding || !/\s$/.test(lastTextInEmbedding)) {
-            bound += " ";
-          }
-          bound += "»";
-          if (
-            i < msg.length - 1 && msg[i + 1].type === "text" &&
-            !/^\s/.test((msg[i + 1] as Text).data.text)
-          ) {
-            bound += " ";
-          }
-          return text(bound);
-        })();
-        out.push(rightBound);
-      } else {
-        out.push(
-          ...reconstructCommand(
-            piece.command.command,
-            (() => {
-              if (!piece.prefix || piece.prefix.length === 0) return null;
-              return piece.prefix[0] + "\u033D" + piece.prefix.slice(1);
-            })(),
-            piece.arguments,
-          ),
-        );
-      }
-    } else {
-      out.push(piece);
-    }
-  }
-
-  mergeAdjoiningTextPiecesInPlace(out);
-
-  return out;
-}
-
-export function generateUnifiedResponse(cmdsResps: CommandResponses[]) {
+// TODO: testing
+export function generateUnifiedResponse(
+  { cmdsResps }: { cmdsResps: CommandResponses[] },
+) {
   if (cmdsResps.length === 0) return null;
   if (cmdsResps.length === 1 && cmdsResps[0].command.isLeading) {
     return generateUnifiedResponseForSingleCommand(cmdsResps[0], false);
@@ -235,7 +155,7 @@ function generateUnifiedResponseForSingleCommand(
   if (requiresPreview) {
     out.push(
       text("⊛ "),
-      ...generateCommandPreview(responses.command),
+      ...responses.command.generatePreview(),
       text(" ➩\n"),
     );
   } else {
@@ -280,86 +200,6 @@ function generateUnifiedResponseForSingleCommand(
 
   mergeAdjoiningTextPiecesInPlace(out);
 
-  return out;
-}
-
-function generateCommandPreview(executedCmd: ExecutedCommandPiece) {
-  let weight = 0;
-  let previewIsComplete = true;
-  const preview: RegularMessagePiece[] = [];
-
-  if (executedCmd.isEmbedded) {
-    preview.push(text("… { "));
-  }
-
-  for (
-    const piece of reconstructCommand(
-      executedCmd.command.command,
-      executedCmd.prefix,
-      executedCmd.arguments,
-    )
-  ) {
-    if (weight > 10) {
-      break;
-    }
-    switch (piece.type) {
-      case "text": {
-        for (const char of [...piece.data.text]) {
-          if (weight > 10) break;
-          preview.push(text(char));
-          const isAscii = /^[\x00-\x7F]$/.test(char);
-          weight += isAscii ? 0.5 : 1;
-        }
-        break;
-      }
-      case "at": {
-        preview.push(text("[at:…]"));
-        weight += 3;
-        break;
-      }
-      case "face": {
-        preview.push(piece);
-        weight += 2;
-        break;
-      }
-      default: {
-        weight = Infinity;
-        break;
-      }
-    }
-  }
-
-  if (weight > 10) {
-    previewIsComplete = false;
-  }
-
-  if (!previewIsComplete) {
-    preview.push(text("…"));
-  }
-
-  if (executedCmd.isEmbedded) {
-    preview.push(text(" } …"));
-  }
-
-  return preview;
-}
-
-function reconstructCommand(
-  command: string,
-  prefix: string | null,
-  cmdArgs: MessageLineIncludingExecutedCommands[],
-) {
-  const out: RegularMessagePiece[] = [];
-  out.push(text(`${prefix ?? ""}${command}`));
-  if (cmdArgs.length > 0) {
-    out.push(text(" "));
-  }
-  for (const [i, arg] of cmdArgs.entries()) {
-    out.push(...fillingEmbeddedContent(arg));
-    if (i < cmdArgs.length - 1) {
-      out.push(text(" "));
-    }
-  }
   return out;
 }
 

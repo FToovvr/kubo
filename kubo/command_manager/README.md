@@ -13,5 +13,3 @@
 - manager 接收到命令，交给 evaluator 执行，然后负责输出结果；
 - evaluator 收到消息，交给 tokenizer 解析命令，然后执行命令并返回；
 - tokenizer 收到消息，解析命令并返回。
-
-tokenizer 下还包括 `regularize.ts`，用于规范化其返回的内容。

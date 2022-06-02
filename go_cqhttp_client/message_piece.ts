@@ -7,14 +7,14 @@ export interface MessagePiece {
 export type RegularMessagePiece = Text | Reply | At | Emoticon | Image;
 
 // 用于模板字符串
-export function buildMessage(
+export function buildMessage<T extends MessagePiece | Text>(
   strings: TemplateStringsArray,
-  ...values: (MessagePiece | MessagePiece[])[]
+  ...values: (T | T[])[]
 ) {
-  const msg: MessagePiece[] = [];
+  const msg: T[] = [];
   for (let i = 0; i < strings.length; i++) {
     if (strings[i].length > 0) {
-      msg.push(text(strings[i]));
+      msg.push(text(strings[i]) as T);
     }
     const x = values[i];
     if (Array.isArray(x)) {
@@ -90,6 +90,7 @@ export interface Image extends MessagePiece {
   };
 }
 export function imageFromBase64(base64: string): Image {
+  // TODO: validate base64
   return { type: "image", data: { file: `base64://${base64}` } };
 }
 

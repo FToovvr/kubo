@@ -28,7 +28,6 @@ export type LooseCommandEntity =
     Omit<CommandEntity, "command" | "supportedStyles">,
     // | "lineStylePriority"
     | "referencePolicy"
-    | "argumentsPolicy"
     | "argumentsBeginningPolicy"
   >
   & {
@@ -55,7 +54,6 @@ export function completeCommandEntity(
     command,
     // lineStylePriority: "low",
     referencePolicy: "omittable",
-    argumentsPolicy: "parse-all",
     argumentsBeginningPolicy: "follows-spaces",
 
     ...entity,
@@ -137,7 +135,7 @@ export class CommandManager {
       msg as RegularMessagePiece[], // TODO: 从源头使用 RegularMessagePiece
     );
 
-    const unifiedResponse = generateUnifiedResponse(responses);
+    const unifiedResponse = generateUnifiedResponse({ cmdsResps: responses });
 
     if (
       ((embeddingResult?.length ?? 0) === 0) &&
@@ -165,6 +163,7 @@ export class CommandManager {
 
     // TODO: await or not?
     if (out.length > 0) {
+      // console.log(Deno.inspect(out, { depth: Infinity }));
       if (group) {
         bot.sendGroupMessage(group, out);
       } else { // TODO: 处理匿名的情况
