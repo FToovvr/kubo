@@ -1,10 +1,4 @@
 import {
-  At,
-  MessagePiece,
-  Reply,
-  Text,
-} from "../go_cqhttp_client/message_piece.ts";
-import {
   extractReferenceFromMessage,
   mergeAdjoiningTextPiecesInPlace,
   removeReferenceFromMessage,
