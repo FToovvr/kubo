@@ -8,6 +8,7 @@
     "Corasick",
     "cqhttp",
     "omittable",
-    "prepending"
+    "prepending",
+    "Rollbacked"
   ]
 }
