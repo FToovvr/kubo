@@ -1,5 +1,9 @@
 import { AhoCorasick } from "../../../utils/aho_corasick.ts";
-import { MessagePiece, Text } from "../../../go_cqhttp_client/message_piece.ts";
+import {
+  MessagePiece,
+  Text,
+  text,
+} from "../../../go_cqhttp_client/message_piece.ts";
 
 export class SensitiveFilter {
   ac: AhoCorasick;
@@ -28,12 +32,11 @@ export class SensitiveFilter {
     }
 
     const retMessage: MessagePiece[] = [];
-    for (const _piece of structuredClone(message) as MessagePiece[]) {
-      if (_piece.type === "text") {
-        const piece = _piece as Text;
-        piece.data.text = this.filterText(piece.data.text);
+    for (let piece of structuredClone(message) as MessagePiece[]) {
+      if (piece.type === "text") {
+        piece = text(this.filterText((piece as Text).data.text));
       }
-      retMessage.push(_piece);
+      retMessage.push(piece);
     }
 
     return retMessage;

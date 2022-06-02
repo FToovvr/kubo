@@ -1,3 +1,3 @@
 #!/usr/bin/env sh
 
-deno run --no-check --allow-net --allow-read --allow-write debug_main.ts
+deno run --allow-net --allow-read --allow-write debug_main.ts

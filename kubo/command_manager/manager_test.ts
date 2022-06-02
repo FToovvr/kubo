@@ -100,6 +100,7 @@ Deno.test(`${testPrefix} 注册命令`, async (t) => {
 
 Deno.test(`${testPrefix} 回复`, async (t) => {
   const possibleScenes = ["私聊好友", "私聊临时", "群聊", "群聊匿名", "讨论组"] as const;
+  throw new Error("TODO");
 
   const table: {
     message: string;
@@ -248,22 +249,24 @@ function _test_registerCmdEchoAndError(cm: CommandManager) {
   cm.registerCommand("echo", {
     readableName: "回响",
     description: "将输入的参数输出",
-    callback: (ctx, opts, args) => {
+    callback: (ctx, args) => {
       let _ret = args?.map((arg) => {
-        if (arg.length > 1) return [text("[complex]")];
-        if (arg[0].type === "__kubo_executed_command") {
-          if (arg[0].hasFailed) return [text("[failed-cmd]")];
-          if (arg[0].result.embedding?.length ?? 0 > 0) {
+        const sole = arg.sole;
+        if (!sole) return [text("[complex]")];
+
+        if (sole.type === "__kubo_executed_command") {
+          if (sole.hasFailed) return [text("[failed-cmd]")];
+          if (sole.result?.embedding?.length ?? 0 > 0) {
             return [
-              text(`[cmd:${arg[0].command.command},content=`),
-              ...arg[0].result.embedding!,
+              text(`[cmd:${sole.command.command},content=`),
+              ...sole.result!.embedding!,
               text(`]`),
             ];
           } else {
-            return [text(`[cmd:${arg[0].command.command}]`)];
+            return [text(`[cmd:${sole.command.command}]`)];
           }
         }
-        if (arg[0].type === "text") return [arg[0]];
+        if (sole.type === "text") return [sole];
         return [text("[other]")];
       });
       const ret = _ret?.flatMap((arg, i) =>
@@ -280,6 +283,6 @@ function _test_registerCmdEchoAndError(cm: CommandManager) {
   cm.registerCommand("error", {
     readableName: "错误",
     description: "返回错误",
-    callback: (ctx, opts, args) => ({ error: "error" }),
+    callback: (ctx, args) => ({ error: "error" }),
   });
 }
