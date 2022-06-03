@@ -24,49 +24,14 @@ import {
   MessageOfPrivateEvent,
 } from "./go_cqhttp_client/events.ts";
 
-console.log("初始化中…");
-
-const config = parseYaml(await Deno.readTextFile("config.yaml")) as {
-  connection: {
-    host: string;
-    ports: { http: number; ws: number };
-    "access-token-file": string;
-  };
-  storage: {
-    "db-file": string;
-  };
-  common: {
-    "owner-qq": number | number[];
-  };
-  "x-sensitive-words-dir": string;
-  "x-allowed-groups": number[];
-};
-
-const accessToken = await Deno.readTextFile(
-  config.connection["access-token-file"],
-);
-
-const sensitiveList = await (async () => {
-  const pendings: string[] = [config["x-sensitive-words-dir"]];
-  const allWords = [];
-  while (pendings.length > 0) {
-    const [cur] = pendings.splice(0, 1);
-    for await (const entry of Deno.readDir(cur)) {
-      if (entry.isFile && /\.list$/.test(entry.name)) {
-        const text = await Deno.readTextFile(path.join(cur, entry.name));
-        const words = text.split("\n");
-        allWords.push(...words);
-      } else if (entry.isDirectory) {
-        pendings.push(path.join(cur, entry.name));
-      }
-    }
-  }
-  return allWords;
-})();
-
-const db = new DB(config.storage["db-file"]);
+console.log("启动…");
 
 async function main() {
+  console.log("初始化中…");
+
+  const { config, accessToken, sensitiveList } = await loadConfig();
+  const db = new DB(config.storage["db-file"]);
+
   const 猫猫睡觉 = await fileToBase64("test_fixtures/猫猫睡觉.jpg");
 
   const client = new Client({
@@ -253,6 +218,48 @@ async function main() {
     Deno.exit(0);
   });
   await bot.run();
+}
+
+async function loadConfig() {
+  const config = parseYaml(await Deno.readTextFile("config.yaml")) as {
+    connection: {
+      host: string;
+      ports: { http: number; ws: number };
+      "access-token-file": string;
+    };
+    storage: {
+      "db-file": string;
+    };
+    common: {
+      "owner-qq": number | number[];
+    };
+    "x-sensitive-words-dir": string;
+    "x-allowed-groups": number[];
+  };
+
+  const accessToken = await Deno.readTextFile(
+    config.connection["access-token-file"],
+  );
+
+  const sensitiveList = await (async () => {
+    const pendings: string[] = [config["x-sensitive-words-dir"]];
+    const allWords = [];
+    while (pendings.length > 0) {
+      const [cur] = pendings.splice(0, 1);
+      for await (const entry of Deno.readDir(cur)) {
+        if (entry.isFile && /\.list$/.test(entry.name)) {
+          const text = await Deno.readTextFile(path.join(cur, entry.name));
+          const words = text.split("\n");
+          allWords.push(...words);
+        } else if (entry.isDirectory) {
+          pendings.push(path.join(cur, entry.name));
+        }
+      }
+    }
+    return allWords;
+  })();
+
+  return { config, accessToken, sensitiveList };
 }
 
 async function fileToBase64(path: string) {
