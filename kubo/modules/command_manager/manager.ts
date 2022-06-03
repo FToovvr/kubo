@@ -86,20 +86,20 @@ type _MockKuboBotOnMessage = (
 ) => void;
 
 export class CommandManager {
-  bot: KuboBot | _MockKuboBot;
+  #bot: KuboBot | _MockKuboBot;
 
-  commands: CommandTrie = new Trie<CommandEntity>();
+  readonly commands: CommandTrie = new Trie<CommandEntity>();
 
-  constructor(bot: CommandManager["bot"]) {
-    this.bot = bot;
+  constructor(bot: KuboBot | _MockKuboBot) {
+    this.#bot = bot;
 
-    this.bot.settings.register("prefix", {
+    this.#bot.settings.register("prefix", {
       info: { readableName: "命令前缀", description: "触发命令的前缀" },
       valueType: "string",
       default: "/",
     });
 
-    this.bot.onMessage("all", { all: true }, this.processMessage.bind(this));
+    this.#bot.onMessage("all", { all: true }, this.processMessage.bind(this));
   }
 
   registerCommand(command: string, looseEntity: LooseCommandEntity) {
@@ -115,7 +115,7 @@ export class CommandManager {
   }
 
   private processMessage(
-    bot: CommandManager["bot"],
+    bot: KuboBot | _MockKuboBot,
     msg: string | MessagePiece[],
     ev: MessageEvent,
   ): ProcessResult<true> {
@@ -125,7 +125,7 @@ export class CommandManager {
       group = ev.groupId;
     }
     const scope = group ? { group } : {};
-    const prefix = this.bot.settings.get(scope, "prefix") as string;
+    const prefix = this.#bot.settings.get(scope, "prefix") as string;
 
     if (typeof msg === "string") {
       msg = [text(msg)];
