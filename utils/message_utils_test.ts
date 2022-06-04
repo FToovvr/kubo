@@ -8,6 +8,8 @@ import {
   RegularMessagePiece,
   Reply,
   reply,
+  ReplyAt,
+  replyAt,
   text,
 } from "../go_cqhttp_client/message_piece.ts";
 import {
@@ -96,7 +98,7 @@ Deno.test("utils/message_utils.mergeAdjoiningTextPiecesInPlace", async (t) => {
 Deno.test("utils/message_utils.extractReferenceFromMessage", async (t) => {
   const table: {
     in: Arr2MsgParam;
-    replyAt?: [Reply, At];
+    replyAt?: ReplyAt;
     rest: Arr2MsgParam;
   }[] = [
     { // 1 没有引用回复
@@ -105,6 +107,7 @@ Deno.test("utils/message_utils.extractReferenceFromMessage", async (t) => {
     },
     { // 2 只有 reply
       in: [["reply", { id: "-42" }], ["text", { text: "foo" }]],
+      replyAt: replyAt(-42),
       rest: [["text", { text: "foo" }]],
     },
     { // 3 只有 at
@@ -121,7 +124,7 @@ Deno.test("utils/message_utils.extractReferenceFromMessage", async (t) => {
         ["at", { qq: "42" }],
         ["text", { text: "foo" }],
       ],
-      replyAt: [reply(-42), at(42)],
+      replyAt: replyAt(-42, 42),
       rest: [["text", { text: "foo" }]],
     },
     { // 6 齐了，但没后文
@@ -129,7 +132,7 @@ Deno.test("utils/message_utils.extractReferenceFromMessage", async (t) => {
         ["reply", { id: "-42" }],
         ["at", { qq: "42" }],
       ],
-      replyAt: [reply(-42), at(42)],
+      replyAt: replyAt(-42, 42),
       rest: [],
     },
     { // 7 多一个空格，iOS 端观察到的情况
@@ -138,7 +141,7 @@ Deno.test("utils/message_utils.extractReferenceFromMessage", async (t) => {
         ["at", { qq: "42" }],
         ["text", { text: " foo" }],
       ],
-      replyAt: [reply(-42), at(42)],
+      replyAt: replyAt(-42, 42),
       rest: [["text", { text: "foo" }]],
     },
     { // 8 同上，但后面跟的其他类型的内容
@@ -148,7 +151,7 @@ Deno.test("utils/message_utils.extractReferenceFromMessage", async (t) => {
         ["text", { text: " " }],
         ["at", { qq: "42" }], // 这个 at 是后面跟着的，下同
       ],
-      replyAt: [reply(-42), at(42)],
+      replyAt: replyAt(-42, 42),
       rest: [["at", { qq: "42" }]],
     },
     { // 9 同上上，但后面没有跟着内容
@@ -157,7 +160,7 @@ Deno.test("utils/message_utils.extractReferenceFromMessage", async (t) => {
         ["at", { qq: "42" }],
         ["text", { text: " " }],
       ],
-      replyAt: [reply(-42), at(42)],
+      replyAt: replyAt(-42, 42),
       rest: [],
     },
     { // 10 多一个换行的 text，macOS 端观察到的情况
@@ -167,7 +170,7 @@ Deno.test("utils/message_utils.extractReferenceFromMessage", async (t) => {
         ["text", { text: "\n" }],
         ["text", { text: "foo" }],
       ],
-      replyAt: [reply(-42), at(42)],
+      replyAt: replyAt(-42, 42),
       rest: [["text", { text: "foo" }]],
     },
     { // 11 同上
@@ -177,7 +180,7 @@ Deno.test("utils/message_utils.extractReferenceFromMessage", async (t) => {
         ["text", { text: "\n" }],
         ["at", { qq: "42" }],
       ],
-      replyAt: [reply(-42), at(42)],
+      replyAt: replyAt(-42, 42),
       rest: [["at", { qq: "42" }]],
     },
     { // 12 多两个及以上的空格时，应该只去掉第一个
@@ -187,7 +190,7 @@ Deno.test("utils/message_utils.extractReferenceFromMessage", async (t) => {
         ["text", { text: " ".repeat(4) }],
         ["at", { qq: "42" }],
       ],
-      replyAt: [reply(-42), at(42)],
+      replyAt: replyAt(-42, 42),
       rest: [["text", { text: " ".repeat(3) }], ["at", { qq: "42" }]],
     },
   ];

@@ -4,6 +4,7 @@ import {
   MessagePiece,
   RegularMessagePiece,
   Reply,
+  ReplyAt,
   Text,
   text,
 } from "../../../go_cqhttp_client/message_piece.ts";
@@ -17,7 +18,7 @@ type SeparateHeadFromMessageReturning<T extends MessagePiece> = {
   // 清理掉位于开头的引用回复以及位于开头的 at 后的消息
   cleanedMessage: T[];
   // 引用回复
-  replyAt?: [Reply, At];
+  replyAt?: ReplyAt;
   // 位于开头的直接 at，多用于明确指定响应命令的 bot
   leadingAt?: At;
 };
@@ -25,24 +26,30 @@ type SeparateHeadFromMessageReturning<T extends MessagePiece> = {
 /**
  * 将开头的信息与消息的剩余内容相分离
  */
-export function separateHeadFromMessage<T extends MessagePiece>(
+export function separateHeadFromMessage<T extends MessagePiece | Text>(
   msg: T[],
 ): SeparateHeadFromMessageReturning<T> {
   const { replyAt, rest } = extractReferenceFromMessage(msg);
-  if (rest[0]) {
+  if (rest[0]) { // 清除掉空白文本
     const first = getTypedMessagePiece(rest[0]);
-    // 清除掉空白文本
     if (first.text && first.text.data.text.trim().length === 0) {
       rest.splice(0, 1);
     }
   }
+
   let leadingAt: At | null = null;
-  if (rest[0]) {
+  if (rest[0]) { // 清除掉多余的 at
     const first = getTypedMessagePiece(rest[0]);
-    // 清除掉多余的 at
     if (first.at) {
       leadingAt = first.at;
       rest.splice(0, 1);
+    }
+
+    if (rest[0]) { // 如果开头有 at，忽略那之后的空白
+      const first = getTypedMessagePiece(rest[0]);
+      if (first.text) {
+        rest[0] = text(first.text.data.text.trimStart()) as T;
+      }
     }
   }
 

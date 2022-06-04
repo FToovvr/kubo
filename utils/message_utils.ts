@@ -3,6 +3,8 @@ import {
   getTypedMessagePiece,
   MessagePiece,
   Reply,
+  ReplyAt,
+  replyAt,
   Text,
   text,
 } from "../go_cqhttp_client/message_piece.ts";
@@ -52,22 +54,36 @@ export function removeReferenceFromMessage(message: MessagePiece[]) {
 
 export function extractReferenceFromMessage<T extends MessagePiece | Text>(
   message: T[],
-): { replyAt?: [Reply, At]; rest: T[] } {
-  // 注：观察到：
-  //     - iOS 端引用回复时会多出一个空格；
-  //     - macOS 端则会多出一个 text（并未被合并），内容为 "\n"
+): { replyAt?: ReplyAt; rest: T[] } {
+  // 注：观察带引用但消息：
+  //     - 有外部 at 的消息，iOS TIM 和 macOS QQ 的格式皆为
+  //       [reply(refMsgId), at(qq), text(" "), at(qq), text(content)]
+  //     - 无外部 at 的消息，
+  //       - iOS TIM 的格式为
+  //         [reply(refMsgId), at(qq), text(" " + content)]
+  //       - macOS QQ（删完 at 再多退格一次）的格式为
+  //         [reply(refMsgId), text(content)]
+  //       - macOS QQ（不多退格）的格式（应该）为
+  //         [reply(refMsgId), at(qq), text("\n"), text(content)]
 
   if (message.length === 0 || message[0].type !== "reply") {
-    return { rest: message ?? [] };
-  } else if (message.length === 1) {
-    // 单独有一个 reply 的情况不知该怎么处理，就当根本没有吧
-    return message[0].type === "reply" ? { rest: [] } : { rest: message };
-  } else if (message[1].type !== "at") {
-    return { rest: message.slice(1) };
+    return { rest: message };
   }
-  const [_reply, _at, ...rest] = message;
-  const reply = _reply as unknown as Reply;
-  const at = _at as unknown as At;
+  if (message.length === 1) {
+    // 单独有一个 reply 的情况不知该怎么处理，就当根本没有吧
+    return { rest: [] };
+  }
+
+  let reply = message[0] as Reply;
+  let at: At | null = null;
+  let rest: T[];
+  if (message[1].type === "at") {
+    at = message[1] as At;
+    rest = message.slice(2);
+  } else {
+    rest = message.slice(1);
+  }
+
   // 处理可能多出来空白
   if (rest.length > 0 && rest[0].type === "text") {
     const first = rest[0] as unknown as Text;
@@ -78,7 +94,7 @@ export function extractReferenceFromMessage<T extends MessagePiece | Text>(
       rest[0] = text(firstText.substring(1)) as T;
     }
   }
-  return { replyAt: [reply, at], rest };
+  return { replyAt: replyAt(reply, at ?? undefined), rest };
 }
 
 /**

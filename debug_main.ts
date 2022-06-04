@@ -122,11 +122,11 @@ async function main() {
     const ref = replyAt(ev.messageId, ev.sender.qq);
     let outMsg = [];
     if (typeof msg === "string") {
-      outMsg = [...ref, text(msg.substring(2))];
+      outMsg = [...ref.array, text(msg.substring(2))];
     } else {
       let text1: string | null = bot.utils.tryExtractPureText(msg)! ?? "";
       text1 = text1.length === 2 ? null : text1.substring(2).trimStart();
-      outMsg = [...ref, ...(text1 ? [text(text1)] : []), ...msg.slice(1)];
+      outMsg = [...ref.array, ...(text1 ? [text(text1)] : []), ...msg.slice(1)];
     }
     (async () => {
       let ret: any;

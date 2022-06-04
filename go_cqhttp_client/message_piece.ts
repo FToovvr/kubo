@@ -58,9 +58,6 @@ export interface Reply extends MessagePiece {
 export function reply(id: number): Reply {
   return { type: "reply", data: { id: String(id) } };
 }
-export function replyAt(id: number, qq: number): [Reply, At] {
-  return [reply(id), at(qq)];
-}
 
 // AtElement
 export interface At extends MessagePiece {
@@ -70,6 +67,33 @@ export interface At extends MessagePiece {
 }
 export function at(qq: number | "all"): At {
   return { type: "at", data: { qq: qq === "all" ? qq : String(qq) } };
+}
+
+export class ReplyAt {
+  reply: Reply;
+  at?: At;
+
+  constructor(reply: Reply, at?: At) {
+    this.reply = reply;
+    if (at) {
+      this.at = at;
+    }
+  }
+
+  get array() {
+    if (this.at) return [this.reply, this.at];
+    return [this.reply];
+  }
+}
+export function replyAt(id: Reply | number, qq?: At | number): ReplyAt {
+  if (typeof id === "number") {
+    id = reply(id);
+  }
+  if (typeof qq === "number") {
+    qq = at(qq);
+  }
+
+  return new ReplyAt(id, qq);
 }
 
 export interface Emoticon extends MessagePiece {

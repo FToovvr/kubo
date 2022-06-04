@@ -147,7 +147,7 @@ export class CommandManager {
     const out: RegularMessagePiece[] = [];
     if (group) {
       const ref = replyAt(ev.messageId, ev.sender.qq);
-      out.push(...ref);
+      out.push(...ref.array);
     }
     if (embeddingResult) {
       out.push(text("嵌入结果：\n"));

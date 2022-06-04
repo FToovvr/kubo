@@ -1,4 +1,9 @@
-import { At, Reply, text } from "../../../../go_cqhttp_client/message_piece.ts";
+import {
+  At,
+  Reply,
+  ReplyAt,
+  text,
+} from "../../../../go_cqhttp_client/message_piece.ts";
 import { mergeAdjoiningTextPiecesInPlace } from "../../../../utils/message_utils.ts";
 import { CommandEvaluationError } from "../errors.ts";
 import { CommandArgument } from "./command_argument.ts";
@@ -26,10 +31,10 @@ export class ExecuteContext {
   #controllers = new Map<number, CommandContextController>();
   slots: { [slotId: number]: { executed: ExecutedCommandPiece | null } } = {};
 
-  replyAt: [Reply, At] | null;
+  replyAt: ReplyAt | null;
 
   constructor(args: {
-    replyAt?: [Reply, At];
+    replyAt?: ReplyAt;
   } = {}) {
     this.replyAt = args.replyAt ?? null;
   }
@@ -242,6 +247,7 @@ export class CommandContext {
 
   // TODO: public readonly allLines, followingLines
   // TODO: getRawArgumentsSince
+  // TODO: messageId
 }
 
 export class CommandContextController {
