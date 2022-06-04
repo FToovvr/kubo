@@ -1,16 +1,8 @@
-import {
-  RegularMessagePiece,
-  ReplyAt,
-  text,
-} from "../../../../go_cqhttp_client/message_piece.ts";
+import { ReplyAt, text } from "../../../../go_cqhttp_client/message_piece.ts";
 import {
   mergeAdjoiningTextPiecesInPlace,
-  MessageLine,
 } from "../../../../utils/message_utils.ts";
-import {
-  CommandEvaluationError,
-  GetFollowingLinesOfEmbeddedMessageError,
-} from "../errors.ts";
+import { CommandEvaluationError } from "../errors.ts";
 import { CommandArgument } from "./command_argument.ts";
 import { CommandCallbackReturnValue, CommandEntity } from "./command_entity.ts";
 import {
@@ -22,7 +14,6 @@ import {
   UnexecutedCommandPiece,
 } from "./command_piece.ts";
 import { MessageEvent } from "../../../../go_cqhttp_client/events.ts";
-import { ExecutedLine } from "../types.ts";
 
 export interface ExecutionError {
   error: { level: "system" | "user"; content: string };
