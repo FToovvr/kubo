@@ -7,15 +7,18 @@ import { KuboBot } from "../../bot.ts";
 import {
   CommandNote,
   ExecutedCommandPiece,
-  ExecutedPiece,
   executeUnexecutedNonLinePiece,
   generateEmbeddedOutput,
   UnexecutedCommandPiece,
 } from "./models/command_piece.ts";
-import { ExecuteContext } from "./models/execute_context.ts";
-import { MessagePieceForTokenizer, tokenizeMessage } from "./tokenizer.ts";
-import { CommandTrie } from "./types.ts";
+import {
+  ExecuteContextForMessage,
+  PluginContextForMessage,
+} from "./models/execute_context.ts";
+import { tokenizeMessage } from "./tokenizer.ts";
+import { CommandTrie, ExecutedLine, UnexecutedLine } from "./types.ts";
 import { separateHeadFromMessage } from "./utils.ts";
+import { MessageEvent } from "../../../go_cqhttp_client/events.ts";
 
 export interface CommandResponses {
   contents: RegularMessagePiece[][];
@@ -36,9 +39,10 @@ interface EvaluatorEnvironment<Bot extends BaseBot = KuboBot> {
 
 export async function evaluateMessage<Bot extends BaseBot = KuboBot>(
   ctx: EvaluatorEnvironment<Bot>,
+  event: MessageEvent,
   msg: RegularMessagePiece[],
 ) {
-  const evaluator = new MessageEvaluator(ctx, msg);
+  const evaluator = new MessageEvaluator(ctx, event, msg);
   const processResult = await evaluator.execute();
   const embeddingResult = (() => {
     if (evaluator.hasEmbeddedCommand) {
@@ -57,19 +61,17 @@ export async function evaluateMessage<Bot extends BaseBot = KuboBot>(
  * 命令的执行结果会汇集在这里，而不会从这里直接发出去。
  */
 class MessageEvaluator<Bot extends BaseBot = KuboBot> {
-  private commandTrie: CommandTrie;
-  private prefix: string;
   private bot: Bot;
 
   private parsedMessage:
-    | MessageLine<MessagePieceForTokenizer>[]
+    | UnexecutedLine[]
     | null
     | undefined = undefined;
   private executedMessage:
-    | MessageLine<ExecutedPiece>[]
+    | ExecutedLine[]
     | undefined = undefined;
 
-  private executeContext: ExecuteContext;
+  private executeContext: ExecuteContextForMessage;
 
   get executedCommands() {
     return Object.values(this.executeContext.slots)
@@ -109,35 +111,41 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
       .filter((res) => res.contents.length + res.notes.length > 0);
   }
 
+  private pluginContext: PluginContextForMessage | null;
+
   constructor(
     env: EvaluatorEnvironment<Bot>,
+    event: MessageEvent,
     private inputMessage: RegularMessagePiece[],
   ) {
-    this.commandTrie = env.commandTrie;
-    this.prefix = env.prefix;
     this.bot = env.bot;
 
     const { cleanedMessage, replyAt, leadingAt } = separateHeadFromMessage(
       this.inputMessage,
     );
 
-    this.executeContext = new ExecuteContext({
-      ...(replyAt ? { replyAt } : {}),
-    });
+    this.executeContext = new ExecuteContextForMessage();
 
     if (leadingAt && Number(leadingAt.data.qq) !== this.bot.self.qq) {
       // 专门指定了 bot，但并非本 bot
       this.parsedMessage = null;
+      this.pluginContext = null;
       return;
     }
 
     this.parsedMessage = tokenizeMessage(env, cleanedMessage);
+    this.pluginContext = new PluginContextForMessage({
+      event,
+      ...(replyAt ? { replyAt } : {}),
+    });
   }
 
   async execute(): Promise<"skip" | "pass"> {
     if (this.parsedMessage === undefined) throw new Error("never");
     if (!this.parsedMessage) return "skip";
     if (this.executedMessage) throw new Error("never");
+
+    this.executeContext.pluginContext = this.pluginContext!;
 
     this.executedMessage = [];
     const lineCommandsToExecute: {
@@ -154,17 +162,20 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
       ) { // 行命令自身延后执行
         unexecutedLine[0].executeArguments(this.executeContext);
         lineCommandsToExecute.push({ lineIndex, cmd: unexecutedLine[0] });
-        this.executedMessage.push(new MessageLine<ExecutedPiece>());
+        this.executedMessage.push(new MessageLine());
         continue;
       }
 
-      const executedLine = new MessageLine<ExecutedPiece>();
+      const executedLine: ExecutedLine = new MessageLine();
       for (const unexecutedPiece of unexecutedLine) {
-        const result = executeUnexecutedNonLinePiece(
+        const result = await executeUnexecutedNonLinePiece(
           this.executeContext,
           unexecutedPiece,
         );
-        executedLine.push(await result);
+        if (result.type === "__kubo_compact_complex") {
+          throw new Error("never");
+        }
+        executedLine.push(result);
       }
       this.executedMessage.push(executedLine);
     }
@@ -181,7 +192,15 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
         this.executedMessage[lineIndex].push(executed);
       } else {
         const result = await cmd.asLineExecuted(this.executeContext);
-        this.executedMessage[lineIndex].push(...result);
+        for (const piece of result) {
+          if (
+            piece.type === "__kubo_compact_complex" ||
+            piece.type === "__kubo_group"
+          ) {
+            throw new Error("never");
+          }
+          this.executedMessage[lineIndex].push(piece);
+        }
       }
     }
 

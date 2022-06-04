@@ -4,6 +4,7 @@ import { MessageLine } from "../../../utils/message_utils.ts";
 import { CommandEntity } from "./models/command_entity.ts";
 import {
   ExecutedCommandPiece,
+  GroupPiece,
   UnexecutedCommandPiece,
 } from "./models/command_piece.ts";
 
@@ -34,4 +35,11 @@ export type MessageLineIncludingExecutedCommands = MessageLine<
 
 export type MessageLineIncludingCommands = MessageLine<
   MessagePieceIncludingCommand
+>;
+
+export type UnexecutedLine = MessageLine<
+  RegularMessagePiece | UnexecutedCommandPiece | GroupPiece
+>;
+export type ExecutedLine = MessageLine<
+  RegularMessagePiece | ExecutedCommandPiece | GroupPiece<true>
 >;

@@ -15,7 +15,7 @@ import {
   reconstructFromComplexPieceParts,
   UnexecutedCommandPiece,
 } from "./models/command_piece.ts";
-import { CommandTrie } from "./types.ts";
+import { CommandTrie, UnexecutedLine } from "./types.ts";
 
 export interface TokenizingEnvironment {
   commandTrie: CommandTrie;
@@ -41,9 +41,9 @@ const usesDebugLog = (() => {
 export function tokenizeMessage(
   ctx: TokenizingEnvironment,
   msg: RegularMessagePiece[],
-): MessageLine<MessagePieceForTokenizer>[] {
-  const lines: MessageLine<MessagePieceForTokenizer>[] = [];
-  let curLine = new MessageLine<MessagePieceForTokenizer>();
+): UnexecutedLine[] {
+  const lines: UnexecutedLine[] = [];
+  let curLine: UnexecutedLine = new MessageLine();
 
   // TODO: 也许是 stack 或者单纯只能有一个 piece 更好？
   const insertedQueue: (RegularMessagePiece | LinefeedPiece)[] = [];

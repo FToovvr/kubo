@@ -1,19 +1,28 @@
 import {
-  At,
-  Reply,
+  RegularMessagePiece,
   ReplyAt,
   text,
 } from "../../../../go_cqhttp_client/message_piece.ts";
-import { mergeAdjoiningTextPiecesInPlace } from "../../../../utils/message_utils.ts";
-import { CommandEvaluationError } from "../errors.ts";
+import {
+  mergeAdjoiningTextPiecesInPlace,
+  MessageLine,
+} from "../../../../utils/message_utils.ts";
+import {
+  CommandEvaluationError,
+  GetFollowingLinesOfEmbeddedMessageError,
+} from "../errors.ts";
 import { CommandArgument } from "./command_argument.ts";
 import { CommandCallbackReturnValue, CommandEntity } from "./command_entity.ts";
 import {
   CommandExecutedResult,
   CommandNote,
   ExecutedCommandPiece,
+  ExecutedPiece,
+  GroupPiece,
   UnexecutedCommandPiece,
 } from "./command_piece.ts";
+import { MessageEvent } from "../../../../go_cqhttp_client/events.ts";
+import { ExecutedLine } from "../types.ts";
 
 export interface ExecutionError {
   error: { level: "system" | "user"; content: string };
@@ -23,7 +32,7 @@ export interface ExecutionError {
 /**
  * 一条消息的执行上下文
  */
-export class ExecuteContext {
+export class ExecuteContextForMessage {
   nextCommandId = 1;
   // TODO: slotId 由 tokenizer 分配，这样也许能够方便实现预览嵌入命令前后的内容
   nextSlotId = -1;
@@ -31,13 +40,7 @@ export class ExecuteContext {
   #controllers = new Map<number, CommandContextController>();
   slots: { [slotId: number]: { executed: ExecutedCommandPiece | null } } = {};
 
-  replyAt: ReplyAt | null;
-
-  constructor(args: {
-    replyAt?: ReplyAt;
-  } = {}) {
-    this.replyAt = args.replyAt ?? null;
-  }
+  pluginContext!: PluginContextForMessage;
 
   getNextSlotId() {
     const next = this.nextSlotId;
@@ -58,6 +61,7 @@ export class ExecuteContext {
       head: entity.command,
       isEmbedded: unexecuted.isEmbedded,
       shouldAwait: unexecuted.isAwait,
+      arguments: args,
       ...(extra.lineNumber !== undefined
         ? { lineNumber: extra.lineNumber }
         : {}),
@@ -155,7 +159,7 @@ export class ExecuteContext {
     const commandId = this.nextCommandId;
     this.nextCommandId++;
     const contextController = new CommandContextController();
-    const context = CommandContext._internal_make(
+    const context = PluginContextForCommand._internal_make(
       this,
       contextController,
       commandId,
@@ -168,24 +172,53 @@ export class ExecuteContext {
   }
 }
 
+interface PluginContextForMessageArguments {
+  event: MessageEvent;
+  replyAt?: ReplyAt;
+}
+export class PluginContextForMessage {
+  event: MessageEvent;
+  replyAt?: ReplyAt;
+
+  constructor(args: PluginContextForMessageArguments) {
+    this.event = args.event;
+    if (args.replyAt) {
+      this.replyAt = args.replyAt;
+    }
+  }
+
+  get messageId() {
+    return this.event.messageId;
+  }
+  get isInGroupChat() {
+    return this.event.messageType === "group";
+  }
+}
+
 interface CommandContextArguments {
   prefix: string | null;
   head: string;
   isEmbedded: boolean;
   shouldAwait: boolean;
 
+  arguments: CommandArgument[];
   lineNumber?: number; // when !isEmbedded
 }
 
-export class CommandContext {
+export class PluginContextForCommand {
   private isValid = true;
 
-  public readonly head: string;
-  public readonly prefix: string | null;
-  public get hasPrefix() {
+  get message() {
+    return this.executeContext.pluginContext;
+  }
+
+  readonly prefix: string | null;
+  get hasPrefix() {
     if (this.prefix === "") throw new Error("never");
     return this.prefix !== null;
   }
+
+  readonly head: string;
   /**
    * 被调用时，头部的样子。
    * 目的是在有多个前缀 / 别名时，提示信息中显示的命令能保持调用时的那样。
@@ -194,19 +227,90 @@ export class CommandContext {
    * - 命令 `/foo bar` 的 `headInvoked` 是 `/foo`；
    * - 命令 `{ /foo bar }` 的 `headInvoked` 也是 `/foo`；
    */
-  public get headInvoked() {
+  get headInvoked() {
     return this.prefix + this.head;
   }
 
-  public readonly isEmbedded: boolean;
-  public readonly shouldAwait: boolean;
+  readonly arguments: CommandArgument[];
+  // TODO: test
+  getRemainArgumentsAsWhole(begin: number): ExecutedPiece[] | null {
+    const remain = this.arguments.slice(begin);
+    if (remain.length === 0) return null;
+    return new GroupPiece({
+      blankAtLeftSide: "",
+      parts: remain,
+    }).asFlat(false);
+  }
+  // TODO: public readonly allLines, followingLines
 
-  public readonly lineNumber?: number;
+  readonly isEmbedded: boolean;
+  readonly shouldAwait: boolean;
+
+  /**
+   * 以 1 开始记。
+   */
+  readonly lineNumber?: number;
+  // /**
+  //  * 获取命令之后跟随的几行内容。
+  //  *
+  //  * TODO: test
+  //  *
+  //  * @param boundary 获取行的界限
+  //  *  - "list" 获取紧随其后的列表
+  //  *    （列表由紧凑的列表项组成，列表项由 "-" 等开头；暂不支持有序列表）
+  //  *  - "until-blank-line" 获取直到空行的内容
+  //  *  - "until-line-command" 获取直到下个行命令的内容
+  //  *  - "paragraph" 获取直到空行或者下个行命令的内容
+  //  *  - "until-end" 获取往后所有行的内容
+  //  */
+  // getFollowingLines(
+  //   boundary:
+  //     | "list"
+  //     | "until-blank-line"
+  //     | "until-line-command"
+  //     | "paragraph"
+  //     | "until-end",
+  // ) {
+  //   if (this.isEmbedded) throw new GetFollowingLinesOfEmbeddedMessageError();
+  //   const out: ExecutedLine[] = [];
+
+  //   for (const line of this.message.lines.slice(this.lineNumber! - 1 + 1)) {
+  //     if (boundary === "list") {
+  //       if (line?.[0].type !== "text") break;
+  //       const text = line[0].data.text;
+  //       if (!/( {0,3}|\t)[-*+]/.test(text)) break;
+  //     }
+
+  //     if (
+  //       boundary === "until-blank-line" ||
+  //       boundary === "paragraph"
+  //     ) {
+  //       if (line.length === 0) break;
+  //       if (line.length === 1 && line[0].type === "text") {
+  //         const text = line[0].data.text;
+  //         if (/^\s+$/.test(text)) break;
+  //       }
+  //     }
+
+  //     if (
+  //       boundary === "until-line-command" ||
+  //       boundary === "paragraph"
+  //     ) {
+  //       if (line.length === 1 && line[0].type === "__kubo_executed_command") {
+  //         break;
+  //       }
+  //     }
+
+  //     out.push(line);
+  //   }
+
+  //   return out;
+  // }
 
   private hasManuallyClaimed = false;
 
   private constructor(
-    private executeContext: ExecuteContext,
+    private executeContext: ExecuteContextForMessage,
     controller: CommandContextController,
     public readonly _internal_id: number,
     extra: CommandContextArguments,
@@ -219,6 +323,7 @@ export class CommandContext {
     this.isEmbedded = extra.isEmbedded;
     this.shouldAwait = extra.shouldAwait;
 
+    this.arguments = extra.arguments;
     if (this.isEmbedded) {
       if (extra.lineNumber !== undefined) throw new Error("never");
     } else {
@@ -228,26 +333,23 @@ export class CommandContext {
   }
 
   static _internal_make(
-    executeContext: ExecuteContext,
+    executeContext: ExecuteContextForMessage,
     controller: CommandContextController,
     id: number,
     extra: CommandContextArguments,
   ) {
-    return new CommandContext(executeContext, controller, id, extra);
+    return new PluginContextForCommand(
+      executeContext,
+      controller,
+      id,
+      extra,
+    );
   }
 
   /** 声明该命令已执行（即使作为行命令没有回复内容） */
   claimExecuted() {
     this.hasManuallyClaimed = true;
   }
-
-  get replyAt() {
-    return this.executeContext.replyAt;
-  }
-
-  // TODO: public readonly allLines, followingLines
-  // TODO: getRawArgumentsSince
-  // TODO: messageId
 }
 
 export class CommandContextController {

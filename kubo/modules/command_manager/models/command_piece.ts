@@ -8,7 +8,10 @@ import {
 import { theAwaitMark } from "../constants.ts";
 import { CommandArgument } from "./command_argument.ts";
 import { CommandEntity } from "./command_entity.ts";
-import { CommandContext, ExecuteContext } from "./execute_context.ts";
+import {
+  ExecuteContextForMessage,
+  PluginContextForCommand,
+} from "./execute_context.ts";
 
 export interface ComplexPiecePart<HasExecuted extends boolean = false> {
   content:
@@ -67,7 +70,7 @@ abstract class BaseCommandPiece<HasExecuted extends boolean> {
       | RegularMessagePiece
     ) = (HasExecuted extends true ? ExecutedPiece : RegularMessagePiece),
   >(
-    execContext: HasExecuted extends true ? ExecuteContext : null,
+    execContext: HasExecuted extends true ? ExecuteContextForMessage : null,
     args: { noOuterBrackets?: boolean } = {},
   ): Promise<Piece[]> {
     const rawParts: Piece[] = [];
@@ -207,13 +210,13 @@ export class UnexecutedCommandPiece extends BaseCommandPiece<false> {
     return await this._asRaw<false>(null);
   }
 
-  async asLineExecuted(execContext: ExecuteContext) {
+  async asLineExecuted(execContext: ExecuteContextForMessage) {
     if (this.isEmbedded) throw new Error("never");
     return await this._asRaw<true>(execContext);
   }
 
   // 执行失败时退化成组
-  async asGroupExecuted(execContext: ExecuteContext) {
+  async asGroupExecuted(execContext: ExecuteContextForMessage) {
     if (!this.isEmbedded) throw new Error("never");
     const parts = [...await this.executeArguments(execContext)];
     const prefix = this.prefix ?? "";
@@ -268,7 +271,7 @@ export class UnexecutedCommandPiece extends BaseCommandPiece<false> {
 
   #executedCache: ExecutedCommandPiece | null | undefined = undefined;
   async execute(
-    execContext: ExecuteContext,
+    execContext: ExecuteContextForMessage,
     extra: { lineNumber?: number } = {},
   ): Promise<ExecutedCommandPiece | null> {
     if (this.#executedCache !== undefined) return this.#executedCache;
@@ -368,7 +371,7 @@ export class UnexecutedCommandPiece extends BaseCommandPiece<false> {
     return this.#executedCache;
   }
 
-  async executeOrAsGroup(execContext: ExecuteContext) {
+  async executeOrAsGroup(execContext: ExecuteContextForMessage) {
     const executed = await this.execute(execContext);
     if (executed) return executed;
     return this.asGroupExecuted(execContext);
@@ -376,7 +379,7 @@ export class UnexecutedCommandPiece extends BaseCommandPiece<false> {
 
   #executedArgumentsCache: ComplexPiecePart<true>[] | undefined = undefined;
   async executeArguments(
-    execContext: ExecuteContext,
+    execContext: ExecuteContextForMessage,
   ): Promise<ComplexPiecePart<true>[]> {
     if (this.#executedArgumentsCache !== undefined) {
       return this.#executedArgumentsCache;
@@ -417,7 +420,7 @@ export class CompactComplexPiece<HasExecuted extends boolean = false> {
   }
 
   async execute(
-    execContext: ExecuteContext,
+    execContext: ExecuteContextForMessage,
   ): Promise<CompactComplexPiece<true>> {
     const executedParts = [];
     for (const part of this.parts) {
@@ -482,19 +485,26 @@ export class GroupPiece<HasExecuted extends boolean = false> {
     return rawParts;
   }
 
-  asFlat(): ComplexPiecePart<HasExecuted>["content"][] {
-    const flat = [
-      text("{" + this.blankAtLeftSide),
-      ...this.parts.flatMap((part) => {
-        return [part.content, text(part.gapAtRight)];
-      }),
-      text("}"),
-    ];
+  // TODO: test
+  // FIXME: 没有处理合并 CompactComplexPiece 的情况
+  asFlat(withOuterBrackets = true): ComplexPiecePart<HasExecuted>["content"][] {
+    const flat = [];
+    if (withOuterBrackets) {
+      flat.push(text("{"));
+    }
+    flat.push(...this.parts.flatMap((part) => {
+      return [part.content, text(part.gapAtRight)];
+    }));
+    if (withOuterBrackets) {
+      flat.push(text("}"));
+    }
     mergeAdjoiningTextPiecesInPlace(flat);
     return flat;
   }
 
-  async execute(execContext: ExecuteContext): Promise<GroupPiece<true>> {
+  async execute(
+    execContext: ExecuteContextForMessage,
+  ): Promise<GroupPiece<true>> {
     const executedParts: ComplexPiecePart<true>[] = [];
     for (const part of this.parts) {
       const type = part.content.type;
@@ -533,7 +543,7 @@ export class ExecutedCommandPiece extends BaseCommandPiece<true> {
   readonly type = "__kubo_executed_command" as const;
 
   // NOTE: 用 # 藏起来是为了方便测试，应该有更好的处理方法。
-  #context: CommandContext;
+  #context: PluginContextForCommand;
   get context() {
     return this.#context;
   }
@@ -560,7 +570,7 @@ export class ExecutedCommandPiece extends BaseCommandPiece<true> {
   constructor(
     public command: CommandEntity,
     args: {
-      context: CommandContext;
+      context: PluginContextForCommand;
 
       isEmbedded: boolean;
       blankAtLeftSide: string | undefined;
@@ -770,7 +780,7 @@ export interface CommandNote {
  * NOTE: 不能是行命令
  */
 export async function executeUnexecutedNonLinePiece(
-  executeContext: ExecuteContext,
+  executeContext: ExecuteContextForMessage,
   unexecutedPiece: UnexecutedPiece,
 ) {
   if (unexecutedPiece.type === "__kubo_unexecuted_command") {

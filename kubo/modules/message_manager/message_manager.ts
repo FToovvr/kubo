@@ -7,6 +7,7 @@ import {
   RawEvent,
   RequestRawEvent,
 } from "../../../go_cqhttp_client/events.ts";
+import { Reply, ReplyAt } from "../../../go_cqhttp_client/message_piece.ts";
 import { KuboBot } from "../../bot.ts";
 import utils from "../../utils.ts";
 
@@ -146,9 +147,27 @@ export class MessageManager {
         )`;
   }
 
-  async getMessageEventRaw(messageId: number) {
+  async getMessageEventRaw(messageId: number): Promise<any>;
+  async getMessageEventRaw(reply: Reply): Promise<any>;
+  async getMessageEventRaw(replyAt: ReplyAt): Promise<any>;
+  async getMessageEventRaw(
+    stuff: number | Reply | ReplyAt,
+  ): Promise<any> {
+    let targetId: number;
+    let targetType: "message_id" = "message_id";
+    if (typeof stuff === "number") {
+      targetId = stuff;
+    } else if ("type" in stuff && stuff.type === "reply") {
+      targetId = Number(stuff.data.id);
+    } else if ("reply" in stuff) {
+      if (stuff.reply?.type !== "reply") throw new Error("never");
+      targetId = Number(stuff.reply.data.id);
+    } else {
+      throw new Error("never");
+    }
+
     const result = await this.db.queryArray
-      `SELECT "raw" FROM history_message WHERE message_id = ${messageId}`;
+      `SELECT "raw" FROM history_message WHERE message_id = ${targetId}`;
     const rows = result.rows;
     if (rows.length === 0) return null;
     return JSON.parse(rows[0][0] as string);

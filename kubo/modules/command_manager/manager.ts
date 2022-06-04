@@ -134,6 +134,7 @@ export class CommandManager {
     }
     const { processResult, embeddingResult, responses } = await evaluateMessage(
       { bot, commandTrie: this.commands, prefix },
+      ev,
       msg as RegularMessagePiece[], // TODO: 从源头使用 RegularMessagePiece
     );
 

@@ -1,10 +1,10 @@
 import { RegularMessagePiece } from "../../../../go_cqhttp_client/message_piece.ts";
 import { CommandArgument } from "./command_argument.ts";
 import { EmbeddingRaw } from "./command_piece.ts";
-import { CommandContext } from "./execute_context.ts";
+import { PluginContextForCommand } from "./execute_context.ts";
 
 export type CommandCallback = (
-  ctx: CommandContext,
+  ctx: PluginContextForCommand,
   args: CommandArgument[],
 ) => CommandCallbackReturnValue | Promise<CommandCallbackReturnValue>;
 
