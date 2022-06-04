@@ -14,6 +14,7 @@ import {
   UnexecutedCommandPiece,
 } from "./command_piece.ts";
 import { MessageEvent } from "../../../../go_cqhttp_client/events.ts";
+import { KuboBot } from "../../../bot.ts";
 
 export interface ExecutionError {
   error: { level: "system" | "user"; content: string };
@@ -181,8 +182,55 @@ export class PluginContextForMessage {
   get messageId() {
     return this.event.messageId;
   }
+  get senderQQ() {
+    return this.event.sender.qq;
+  }
   get isInGroupChat() {
     return this.event.messageType === "group";
+  }
+  get groupId() {
+    if (!this.isInGroupChat) return undefined;
+    return (this.event as any).group_id as number;
+  }
+  get isInPrivateChat() {
+    return this.event.messageType === "private";
+  }
+  get replyAtSeq(): number | undefined {
+    return (this.replyAt?.reply.data as any).seq;
+  }
+  get replyAtSeqData(): {
+    qq: number;
+    seq: number;
+  } | {
+    group: number;
+    seq: number;
+  } | undefined {
+    const seq = this.replyAtSeq;
+    if (seq === undefined) return undefined;
+    if (this.isInGroupChat) {
+      const groupId = this.groupId;
+      if (!groupId) return undefined;
+      return { group: this.groupId!, seq };
+    } else if (this.isInPrivateChat) {
+      return { qq: this.senderQQ, seq };
+    }
+    return undefined;
+  }
+  async getRepliedMessageEventRaw(bot: KuboBot) {
+    const seqData = this.replyAtSeqData;
+    if (seqData) {
+      if ("qq" in seqData) {
+        return await bot.messages.getMessageEventRaw(seqData);
+      }
+      if ("group" in seqData) {
+        return await bot.messages.getMessageEventRaw(seqData);
+      }
+    }
+
+    const replyAt = this.replyAt;
+    if (replyAt) {
+      return await bot.messages.getMessageEventRaw(replyAt);
+    }
   }
 }
 

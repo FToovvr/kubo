@@ -33,7 +33,8 @@ export class APIClient {
   }
 
   hooks = {
-    afterSentMessage: [] as ((resp: SendMessageResponse) => void)[],
+    afterSentMessage:
+      [] as ((resp: SendMessageResponse, targetId: number) => void)[],
   };
 
   async getLoginInfo() {
@@ -60,7 +61,7 @@ export class APIClient {
       auto_escape: !args.cq,
     });
     this.hooks.afterSentMessage.forEach((cb) =>
-      cb(resp as SendMessageResponse)
+      cb(resp as SendMessageResponse, toGroup)
     );
     return resp;
   }
@@ -81,7 +82,7 @@ export class APIClient {
       auto_escape: !args.cq,
     });
     this.hooks.afterSentMessage.forEach((cb) =>
-      cb(resp as SendMessageResponse)
+      cb(resp as SendMessageResponse, toQQ)
     );
     return resp;
   }

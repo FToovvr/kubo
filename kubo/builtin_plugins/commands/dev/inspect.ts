@@ -30,10 +30,8 @@ export default function () {
         readableName: "检视",
         description: "检视消息内容",
         callback: async (ctx, args) => {
-          if (!ctx.message.isInGroupChat) {
-            // 下面这段发不出去
-            // return { error: "由于获取不到引用消息正确的消息 ID，本命令不支持在群聊之外的地方执行。" };
-            return { error: `${ctx.headInvoked} 目前只支持群聊。` };
+          if (!ctx.message.isInGroupChat && !ctx.message.isInPrivateChat) {
+            return { error: `${ctx.headInvoked} 目前只支持群聊及私聊。` };
           }
 
           let shouldSendUsage = false;
@@ -74,9 +72,7 @@ export default function () {
             return { error: `参数有误，请使用 \`${ctx.headInvoked} -help\` 来查询使用方式。` };
           }
 
-          const replyAt = ctx.message.replyAt;
-          if (!replyAt) return usage;
-          const message = await bot.messages.getMessageEventRaw(replyAt);
+          const message = await ctx.message.getRepliedMessageEventRaw(bot);
           if (!message) return { error: "未找到消息，很可能是本 bot 本地并未存有该消息。" };
 
           toDisplay = toDisplay ?? "array";
