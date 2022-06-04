@@ -29,7 +29,7 @@ export default function () {
       bot.commands.registerCommand("inspect", {
         readableName: "检视",
         description: "检视消息内容",
-        callback: (ctx, args) => {
+        callback: async (ctx, args) => {
           let shouldSendUsage = false;
           let hasError = false;
           let toDisplay: "array" | "cq" | "full-event" | null = null;
@@ -69,8 +69,10 @@ export default function () {
           }
 
           if (!ctx.replyAt) return usage;
-          const replyId = ctx.replyAt[0].data.id;
-          const message = bot.messages.getMessageEventRaw(Number(replyId));
+          const replyId = ctx.replyAt.reply.data.id;
+          const message = await bot.messages.getMessageEventRaw(
+            Number(replyId),
+          );
           if (!message) return { error: "未找到消息，很可能是本 bot 本地并未存有该消息。" };
 
           toDisplay = toDisplay ?? "array";
