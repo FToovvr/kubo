@@ -585,7 +585,7 @@ export class ExecutedCommandPiece extends BaseCommandPiece<true> {
   }
 
   get isLeading() {
-    if (this.isEmbedded) throw new Error("never");
+    if (this.isEmbedded) return false;
     return this.context.lineNumber === 1;
   }
 
