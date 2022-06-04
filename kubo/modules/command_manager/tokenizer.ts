@@ -126,7 +126,7 @@ export function tokenizeMessage(
 
         // 换行符，提前把后边的也处理了
         if (!isFromInsertedQueue) {
-          const reLf = /(.*)(\n?)/g;
+          const reLf = /([^\r\n]*)(\r?\n?)/g;
           const toInsert = [];
           let remain!: string;
           while (true) {
@@ -151,6 +151,8 @@ export function tokenizeMessage(
             // 如果处理过换行，那就直接下一轮
             continue OUT;
           }
+        } else {
+          if (/[\r\n]/.test(curText)) throw new Error("never");
         }
       }
     }
