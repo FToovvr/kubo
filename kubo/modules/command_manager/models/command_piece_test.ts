@@ -1,6 +1,7 @@
 import {
   assert,
   assertEquals,
+  assertRejects,
   assertThrows,
 } from "https://deno.land/std@0.134.0/testing/asserts.ts";
 import {
@@ -84,7 +85,7 @@ Deno.test(`${testPrefix} reconstructRaw`, async (t) => {
     );
     await t.step(`case ${i + 1}: ` + inspected, async (t) => {
       const uCmd = getFirstCommandPiece(context, _in);
-      assertEquals(uCmd.asRaw(), _in);
+      assertEquals(await uCmd.asRaw(), _in);
     });
   }
 });
@@ -111,7 +112,7 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
           );
           const execContext = _test_makeExecuteContext();
           const cmd = _test_makeUnexecuted(style, { candidates });
-          const executed = _test_executeCommand(execContext, cmd);
+          const executed = await _test_executeCommand(execContext, cmd);
           assert(executed);
           assertExecuted(executed, cmd, {
             result: _test_makeExpectedResult(style, [text("ok")]),
@@ -127,7 +128,7 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
           );
           const execContext = _test_makeExecuteContext();
           const cmd = _test_makeUnexecuted(style, { candidates });
-          const executed = _test_executeCommand(execContext, cmd);
+          const executed = await _test_executeCommand(execContext, cmd);
           assertEquals(executed, null);
         });
 
@@ -140,7 +141,7 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
           );
           const execContext = _test_makeExecuteContext();
           const cmd = _test_makeUnexecuted(style, { candidates });
-          const executed = _test_executeCommand(execContext, cmd);
+          const executed = await _test_executeCommand(execContext, cmd);
           assert(executed);
           assertExecuted(executed, cmd, {
             hasFailed: true,
@@ -159,7 +160,7 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
           );
           const execContext = _test_makeExecuteContext();
           const cmd = _test_makeUnexecuted(style, { candidates });
-          const executed = _test_executeCommand(execContext, cmd);
+          const executed = await _test_executeCommand(execContext, cmd);
           assert(executed);
           assertExecuted(executed, cmd, {
             hasFailed: true,
@@ -179,7 +180,7 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
             );
             const execContext = _test_makeExecuteContext();
             const cmd = _test_makeUnexecuted(style, { candidates });
-            const executed = _test_executeCommand(execContext, cmd);
+            const executed = await _test_executeCommand(execContext, cmd);
             assert(executed);
             assertExecuted(executed, cmd, {
               result: { embedding: [text("42")], embeddingRaw: { value: 42 } },
@@ -195,7 +196,7 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
             );
             const execContext = _test_makeExecuteContext();
             const cmd = _test_makeUnexecuted(style, { candidates });
-            const executed = _test_executeCommand(execContext, cmd);
+            const executed = await _test_executeCommand(execContext, cmd);
             assert(executed);
             assertExecuted(executed, cmd, {
               hasFailed: true,
@@ -214,7 +215,7 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
             );
             const execContext = _test_makeExecuteContext();
             const cmd = _test_makeUnexecuted(style, { candidates });
-            const executed = _test_executeCommand(execContext, cmd);
+            const executed = await _test_executeCommand(execContext, cmd);
             assert(executed);
             assertExecuted(executed, cmd, {});
           });
@@ -233,7 +234,7 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
           );
           const execContext = _test_makeExecuteContext();
           const cmd = _test_makeUnexecuted(style, { candidates });
-          const executed = _test_executeCommand(execContext, cmd);
+          const executed = await _test_executeCommand(execContext, cmd);
           assert(executed);
           assertExecuted(executed, cmd, {
             result: _test_makeExpectedResult(style, [text("foobar")]),
@@ -251,7 +252,7 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
           );
           const execContext = _test_makeExecuteContext();
           const cmd = _test_makeUnexecuted(style, { candidates });
-          const executed = _test_executeCommand(execContext, cmd);
+          const executed = await _test_executeCommand(execContext, cmd);
           assert(executed);
           assertExecuted(executed, cmd, {
             result: _test_makeExpectedResult(style, [text("foo")]),
@@ -269,7 +270,7 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
           );
           const execContext = _test_makeExecuteContext();
           const cmd = _test_makeUnexecuted(style, { candidates });
-          const executed = _test_executeCommand(execContext, cmd);
+          const executed = await _test_executeCommand(execContext, cmd);
           assert(executed);
           assertExecuted(executed, cmd, {
             result: _test_makeExpectedResult(style, [text("foo")]),
@@ -286,7 +287,7 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
           );
           const execContext = _test_makeExecuteContext();
           const cmd = _test_makeUnexecuted(style, { candidates });
-          const executed = _test_executeCommand(execContext, cmd);
+          const executed = await _test_executeCommand(execContext, cmd);
           assert(executed);
           assertExecuted(executed, cmd, {
             hasFailed: true,
@@ -304,7 +305,7 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
           );
           const execContext = _test_makeExecuteContext();
           const cmd = _test_makeUnexecuted(style, { candidates });
-          const executed = _test_executeCommand(execContext, cmd);
+          const executed = await _test_executeCommand(execContext, cmd);
           assertEquals(executed, null);
         });
 
@@ -319,7 +320,7 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
           );
           const execContext = _test_makeExecuteContext();
           const cmd = _test_makeUnexecuted(style, { candidates });
-          const executed = _test_executeCommand(execContext, cmd);
+          const executed = await _test_executeCommand(execContext, cmd);
           assert(executed);
           assertExecuted(executed, cmd, {
             hasFailed: true,
@@ -338,7 +339,7 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
           );
           const execContext = _test_makeExecuteContext();
           const cmd = _test_makeUnexecuted(style, { candidates });
-          const executed = _test_executeCommand(execContext, cmd);
+          const executed = await _test_executeCommand(execContext, cmd);
           assertEquals(executed, null);
         });
 
@@ -361,7 +362,7 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
           const candidates = [cmd_foobar, cmd_foo, cmd_f];
           const execContext = _test_makeExecuteContext();
           const cmd = _test_makeUnexecuted(style, { candidates });
-          const executed = _test_executeCommand(execContext, cmd);
+          const executed = await _test_executeCommand(execContext, cmd);
           assert(executed);
           assertExecuted(executed, cmd, {
             result: _test_makeExpectedResult(style, [text("f")]),
@@ -402,7 +403,7 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
             }
             const execContext = _test_makeExecuteContext();
             const cmd = _test_makeUnexecuted(style, { candidates, cmdRawArgs });
-            const executed = _test_executeCommand(execContext, cmd);
+            const executed = await _test_executeCommand(execContext, cmd);
             assert(executed);
             if (row.result !== null) {
               assertExecuted(executed, cmd, {
@@ -571,7 +572,7 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
             candidates: [cmd_sum],
             cmdRawArgs: row.args,
           });
-          const executed = _test_executeCommand(execContext, cmd);
+          const executed = await _test_executeCommand(execContext, cmd);
           assert(executed);
           assertExecuted(executed, cmd, {
             arguments: row.argsAfterExecution ? row.argsAfterExecution : "skip",
@@ -1092,13 +1093,13 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
             await t.step("还原为 RegularMessagePiece[]", async (t) => {
               if (style === "line") {
                 assertEquals(
-                  row.cmd.asRaw(),
+                  await row.cmd.asRaw(),
                   row.expectedRaw.forLine,
                 );
               } else {
                 if (style !== "embedded") throw new Error("never");
                 assertEquals(
-                  row.cmd.asRaw(),
+                  await row.cmd.asRaw(),
                   row.expectedRaw.forEmbedded,
                 );
               }
@@ -1107,29 +1108,32 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
               const execContext = _test_makeExecuteContext();
               if (style === "line") {
                 assertEquals(
-                  row.cmd.asLineExecuted(execContext),
+                  await row.cmd.asLineExecuted(execContext),
                   row.expectedReconstructed.forLine,
                 );
               } else {
                 if (style !== "embedded") throw new Error("never");
                 assertEquals(
-                  row.cmd.asGroupExecuted(execContext),
+                  await row.cmd.asGroupExecuted(execContext),
                   row.expectedReconstructed.forEmbedded,
                 );
               }
             });
             await t.step("执行后还原为 RegularMessagePiece[]", async (t) => {
               const execContext = _test_makeExecuteContext();
-              const executed = _test_executeCommand(execContext, row.cmd)!;
+              const executed = await _test_executeCommand(
+                execContext,
+                row.cmd,
+              )!;
               if (style === "line") {
                 assertEquals(
-                  executed.asRaw(),
+                  await executed!.asRaw(),
                   row.expectedRaw.forLine,
                 );
               } else {
                 if (style !== "embedded") throw new Error("never");
                 assertEquals(
-                  executed.asRaw(),
+                  await executed!.asRaw(),
                   row.expectedRaw.forEmbedded,
                 );
               }
@@ -1157,13 +1161,13 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
           });
           if (style === "line") {
             assertEquals(
-              unexecuted.asLineExecuted(execContext),
+              await unexecuted.asLineExecuted(execContext),
               [text("/foobarbaz")],
             );
           } else {
             if (style !== "embedded") throw new Error("never");
             assertEquals(
-              unexecuted.asGroupExecuted(execContext),
+              await unexecuted.asGroupExecuted(execContext),
               new GroupPiece({
                 blankAtLeftSide: "",
                 parts: [{ content: text("/foobarbaz"), gapAtRight: "" }],
@@ -1183,10 +1187,14 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
           const execContext = _test_makeExecuteContext();
           const unexecuted = _test_makeUnexecuted(style, { candidates });
           if (style === "line") {
-            assertThrows(() => unexecuted.asGroupExecuted(execContext));
+            assertRejects(async () =>
+              await unexecuted.asGroupExecuted(execContext)
+            );
           } else {
             if (style !== "embedded") throw new Error("never");
-            assertThrows(() => unexecuted.asLineExecuted(execContext));
+            assertRejects(async () =>
+              await unexecuted.asLineExecuted(execContext)
+            );
           }
         });
       });
@@ -1663,13 +1671,13 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
             await t.step("还原为 RegularMessagePiece[]", async (t) => {
               if (style === "line") {
                 assertEquals(
-                  row.cmd.asRaw(),
+                  await row.cmd.asRaw(),
                   row.expectedRaw.forLine,
                 );
               } else {
                 if (style !== "embedded") throw new Error("never");
                 assertEquals(
-                  row.cmd.asRaw(),
+                  await row.cmd.asRaw(),
                   row.expectedRaw.forEmbedded,
                 );
               }
@@ -1678,13 +1686,13 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
               const execContext = _test_makeExecuteContext();
               if (style === "line") {
                 assertEquals(
-                  row.cmd.asLineExecuted(execContext),
+                  await row.cmd.asLineExecuted(execContext),
                   row.expectedReconstructed.forLine,
                 );
               } else {
                 if (style !== "embedded") throw new Error("never");
                 assertEquals(
-                  row.cmd.asGroupExecuted(execContext),
+                  await row.cmd.asGroupExecuted(execContext),
                   row.expectedReconstructed.forEmbedded,
                 );
               }
@@ -1694,16 +1702,19 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
               // XXX: 这里的 `executed` 其实是在上个测试用例执行的，
               //      也许应该让每次执行生成不同的 `executed`，而不是用 cache。
               //      比如 `unexecuted.clone().execute()`。
-              const executed = _test_executeCommand(execContext, row.cmd)!;
+              const executed = await _test_executeCommand(
+                execContext,
+                row.cmd,
+              )!;
               if (style === "line") {
                 assertEquals(
-                  executed.asRaw(),
+                  await executed!.asRaw(),
                   row.expectedRaw.forLine,
                 );
               } else {
                 if (style !== "embedded") throw new Error("never");
                 assertEquals(
-                  executed.asRaw(),
+                  await executed!.asRaw(),
                   row.expectedRaw.forEmbedded,
                 );
               }
@@ -1992,8 +2003,8 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
     for (const [i, { description, cmd, preview }] of table.entries()) {
       await t.step(`case ${i + 1}: ${description}`, async (t) => {
         const execContext = _test_makeExecuteContext();
-        const executed = _test_executeCommand(execContext, cmd)!;
-        assertEquals(executed.generatePreview(), preview);
+        const executed = await _test_executeCommand(execContext, cmd)!;
+        assertEquals(await executed!.generatePreview(), preview);
       });
     }
   });
@@ -2086,14 +2097,14 @@ function _test_makeUnexecuted(
   }
 }
 
-function _test_executeCommand(
+async function _test_executeCommand(
   execContext: ExecuteContext,
   cmd: UnexecutedCommandPiece,
 ) {
   if (cmd.isEmbedded) {
-    return cmd.execute(execContext);
+    return await cmd.execute(execContext);
   } else {
-    return cmd.execute(execContext, { lineNumber: -1 });
+    return await cmd.execute(execContext, { lineNumber: -1 });
   }
 }
 

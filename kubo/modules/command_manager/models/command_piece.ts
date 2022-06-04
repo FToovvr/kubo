@@ -60,7 +60,7 @@ abstract class BaseCommandPiece<HasExecuted extends boolean> {
   abstract get arguments(): ComplexPiecePart<HasExecuted>[];
   abstract get gapAfterHead(): string;
 
-  protected _asRaw<
+  protected async _asRaw<
     HasExecuted extends boolean,
     Piece extends (
       | ExecutedPiece
@@ -69,7 +69,7 @@ abstract class BaseCommandPiece<HasExecuted extends boolean> {
   >(
     execContext: HasExecuted extends true ? ExecuteContext : null,
     args: { noOuterBrackets?: boolean } = {},
-  ): Piece[] {
+  ): Promise<Piece[]> {
     const rawParts: Piece[] = [];
 
     if (this.isEmbedded) {
@@ -99,19 +99,19 @@ abstract class BaseCommandPiece<HasExecuted extends boolean> {
     for (const preRawPart of preRawParts) {
       if (preRawPart.type === "__kubo_group") {
         if (execContext) {
-          rawParts.push(preRawPart.execute(execContext) as Piece);
+          rawParts.push(await preRawPart.execute(execContext) as Piece);
         } else {
-          rawParts.push(...preRawPart._internal_asRaw() as Piece[]);
+          rawParts.push(...await preRawPart._internal_asRaw() as Piece[]);
         }
       } else if (preRawPart.type === "__kubo_unexecuted_command") {
         if (execContext) {
-          rawParts.push(preRawPart.execute(execContext) as Piece);
+          rawParts.push(await preRawPart.execute(execContext) as Piece);
         } else {
-          rawParts.push(...preRawPart.asRaw() as Piece[]);
+          rawParts.push(...await preRawPart.asRaw() as Piece[]);
         }
       } else if (preRawPart.type === "__kubo_executed_command") {
         if (execContext) throw new Error("never");
-        rawParts.push(...preRawPart.asRaw() as Piece[]);
+        rawParts.push(...await preRawPart.asRaw() as Piece[]);
       } else {
         rawParts.push(preRawPart as Piece);
       }
@@ -203,19 +203,19 @@ export class UnexecutedCommandPiece extends BaseCommandPiece<false> {
    * NOTE: 在规划上， UnexecutedCommand 的 asRaw 是用不上的。
    *       因为要保证所有的命令都被执行。
    */
-  asRaw(): RegularMessagePiece[] {
-    return this._asRaw<false>(null);
+  async asRaw(): Promise<RegularMessagePiece[]> {
+    return await this._asRaw<false>(null);
   }
 
-  asLineExecuted(execContext: ExecuteContext) {
+  async asLineExecuted(execContext: ExecuteContext) {
     if (this.isEmbedded) throw new Error("never");
-    return this._asRaw<true>(execContext);
+    return await this._asRaw<true>(execContext);
   }
 
   // 执行失败时退化成组
-  asGroupExecuted(execContext: ExecuteContext) {
+  async asGroupExecuted(execContext: ExecuteContext) {
     if (!this.isEmbedded) throw new Error("never");
-    const parts = [...this.executeArguments(execContext)];
+    const parts = [...await this.executeArguments(execContext)];
     const prefix = this.prefix ?? "";
     if (
       this.gapAfterHead === "" &&
@@ -267,10 +267,10 @@ export class UnexecutedCommandPiece extends BaseCommandPiece<false> {
   }
 
   #executedCache: ExecutedCommandPiece | null | undefined = undefined;
-  execute(
+  async execute(
     execContext: ExecuteContext,
     extra: { lineNumber?: number } = {},
-  ): ExecutedCommandPiece | null {
+  ): Promise<ExecutedCommandPiece | null> {
     if (this.#executedCache !== undefined) return this.#executedCache;
 
     const slotId = execContext.getNextSlotId();
@@ -281,7 +281,7 @@ export class UnexecutedCommandPiece extends BaseCommandPiece<false> {
     const fullHead = candidates[0].command;
     if (fullHead !== this.fullHead) throw new Error("never");
 
-    const executedArguments = this.executeArguments(execContext);
+    const executedArguments = await this.executeArguments(execContext);
 
     for (const [i, candidate] of candidates.entries()) {
       //== 检查候选命令是否支持当前所用的书写形式 ==
@@ -347,7 +347,7 @@ export class UnexecutedCommandPiece extends BaseCommandPiece<false> {
         }
       }
 
-      const succeeded = execContext.tryExecuteCommand(
+      const succeeded = await execContext.tryExecuteCommand(
         slotId,
         this,
         candidate,
@@ -368,28 +368,30 @@ export class UnexecutedCommandPiece extends BaseCommandPiece<false> {
     return this.#executedCache;
   }
 
-  executeOrAsGroup(execContext: ExecuteContext) {
-    const executed = this.execute(execContext);
+  async executeOrAsGroup(execContext: ExecuteContext) {
+    const executed = await this.execute(execContext);
     if (executed) return executed;
     return this.asGroupExecuted(execContext);
   }
 
   #executedArgumentsCache: ComplexPiecePart<true>[] | undefined = undefined;
-  executeArguments(
+  async executeArguments(
     execContext: ExecuteContext,
-  ): ComplexPiecePart<true>[] {
+  ): Promise<ComplexPiecePart<true>[]> {
     if (this.#executedArgumentsCache !== undefined) {
       return this.#executedArgumentsCache;
     }
 
-    this.#executedArgumentsCache = this.arguments.map(
-      (part): ComplexPiecePart<true> => {
-        return {
-          content: executeUnexecutedNonLinePiece(execContext, part.content),
-          gapAtRight: part.gapAtRight,
-        };
-      },
-    );
+    this.#executedArgumentsCache = [];
+    for (const part of this.arguments) {
+      this.#executedArgumentsCache.push({
+        content: await executeUnexecutedNonLinePiece(
+          execContext,
+          part.content,
+        ),
+        gapAtRight: part.gapAtRight,
+      });
+    }
 
     return this.#executedArgumentsCache;
   }
@@ -414,17 +416,21 @@ export class CompactComplexPiece<HasExecuted extends boolean = false> {
     return [...this.parts];
   }
 
-  execute(execContext: ExecuteContext): CompactComplexPiece<true> {
-    return new CompactComplexPiece<true>(
-      this.parts.map((part): CompactComplexPiece<true>["parts"][0] => {
-        if (part.type === "__kubo_executed_command") throw new Error("never");
-        if (part.type === "__kubo_unexecuted_command") {
-          return part.executeOrAsGroup(execContext);
-        }
-        if (part.type === "__kubo_group") return part.execute(execContext);
-        return part;
-      }),
-    );
+  async execute(
+    execContext: ExecuteContext,
+  ): Promise<CompactComplexPiece<true>> {
+    const executedParts = [];
+    for (const part of this.parts) {
+      if (part.type === "__kubo_executed_command") throw new Error("never");
+      if (part.type === "__kubo_unexecuted_command") {
+        executedParts.push(await part.executeOrAsGroup(execContext));
+      } else if (part.type === "__kubo_group") {
+        executedParts.push(await part.execute(execContext));
+      } else {
+        executedParts.push(part);
+      }
+    }
+    return new CompactComplexPiece<true>(executedParts);
   }
 
   generateEmbeddedOutput() {
@@ -451,7 +457,7 @@ export class GroupPiece<HasExecuted extends boolean = false> {
     this.parts = args.parts;
   }
 
-  _internal_asRaw() {
+  async _internal_asRaw() {
     const rawParts: RegularMessagePiece[] = [];
 
     rawParts.push(text("{" + this.blankAtLeftSide));
@@ -459,12 +465,12 @@ export class GroupPiece<HasExecuted extends boolean = false> {
     const preRawParts = reconstructFromComplexPieceParts(this.parts);
     for (const preRawPart of preRawParts) {
       if (preRawPart.type === "__kubo_group") {
-        rawParts.push(...preRawPart._internal_asRaw());
+        rawParts.push(...await preRawPart._internal_asRaw());
       } else if (
         preRawPart.type === "__kubo_unexecuted_command" ||
         preRawPart.type === "__kubo_executed_command"
       ) {
-        rawParts.push(...preRawPart.asRaw());
+        rawParts.push(...await preRawPart.asRaw());
       } else {
         rawParts.push(preRawPart);
       }
@@ -488,29 +494,31 @@ export class GroupPiece<HasExecuted extends boolean = false> {
     return flat;
   }
 
-  execute(execContext: ExecuteContext): GroupPiece<true> {
+  async execute(execContext: ExecuteContext): Promise<GroupPiece<true>> {
+    const executedParts: ComplexPiecePart<true>[] = [];
+    for (const part of this.parts) {
+      const type = part.content.type;
+      if (type === "__kubo_executed_command") throw new Error("never");
+      if (type === "__kubo_unexecuted_command") {
+        executedParts.push({
+          content: await part.content.executeOrAsGroup(execContext),
+          gapAtRight: part.gapAtRight,
+        });
+      } else if (
+        type === "__kubo_compact_complex" ||
+        type === "__kubo_group"
+      ) {
+        executedParts.push({
+          content: await part.content.execute(execContext),
+          gapAtRight: part.gapAtRight,
+        });
+      } else {
+        executedParts.push(part as ComplexPiecePart<true>);
+      }
+    }
     return new GroupPiece<true>({
       blankAtLeftSide: this.blankAtLeftSide,
-      parts: this.parts.map((part): ComplexPiecePart<true> => {
-        const type = part.content.type;
-        if (type === "__kubo_executed_command") throw new Error("never");
-        if (type === "__kubo_unexecuted_command") {
-          return {
-            content: part.content.executeOrAsGroup(execContext),
-            gapAtRight: part.gapAtRight,
-          };
-        }
-        if (
-          type === "__kubo_compact_complex" ||
-          type === "__kubo_group"
-        ) {
-          return {
-            content: part.content.execute(execContext),
-            gapAtRight: part.gapAtRight,
-          };
-        }
-        return part as ComplexPiecePart<true>;
-      }),
+      parts: executedParts,
     });
   }
 
@@ -589,10 +597,10 @@ export class ExecutedCommandPiece extends BaseCommandPiece<true> {
     return this.context.lineNumber === 1;
   }
 
-  asRaw(
+  async asRaw(
     args: { noOuterBrackets?: boolean } = {},
-  ): RegularMessagePiece[] {
-    return this._asRaw<false>(null, args);
+  ): Promise<RegularMessagePiece[]> {
+    return await this._asRaw<false>(null, args);
   }
 
   asFlat(): ComplexPiecePart<true>["content"][] {
@@ -653,7 +661,7 @@ export class ExecutedCommandPiece extends BaseCommandPiece<true> {
     return out;
   }
 
-  generatePreview() {
+  async generatePreview() {
     const preview: RegularMessagePiece[] = [];
 
     let qi = 10;
@@ -663,7 +671,7 @@ export class ExecutedCommandPiece extends BaseCommandPiece<true> {
       preview.push(text("… {" + blankAtLeftSide));
     }
 
-    const rawPieces = this.asRaw({ noOuterBrackets: true });
+    const rawPieces = await this.asRaw({ noOuterBrackets: true });
     OUT:
     for (const piece of rawPieces) {
       if (qi <= 0) {
@@ -761,18 +769,18 @@ export interface CommandNote {
 /**
  * NOTE: 不能是行命令
  */
-export function executeUnexecutedNonLinePiece(
+export async function executeUnexecutedNonLinePiece(
   executeContext: ExecuteContext,
   unexecutedPiece: UnexecutedPiece,
 ) {
   if (unexecutedPiece.type === "__kubo_unexecuted_command") {
     if (!unexecutedPiece.isEmbedded) throw new Error("never");
-    return unexecutedPiece.executeOrAsGroup(executeContext);
+    return await unexecutedPiece.executeOrAsGroup(executeContext);
   } else if (
     unexecutedPiece.type === "__kubo_compact_complex" ||
     unexecutedPiece.type === "__kubo_group"
   ) {
-    return unexecutedPiece.execute(executeContext);
+    return await unexecutedPiece.execute(executeContext);
   } else {
     return unexecutedPiece;
   }

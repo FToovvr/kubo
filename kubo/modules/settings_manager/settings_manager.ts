@@ -179,11 +179,11 @@ export class SettingsManager {
     this.store.set(scope, "settings", JSON.stringify(this.caches[cacheN].c));
   }
 
-  private getCache(scope: { group?: number }) {
+  private async getCache(scope: { group?: number }) {
     const cacheN = scope.group ?? 0;
     if (!this.caches[cacheN]) {
       this.caches[cacheN] = {};
-      const value = this.store.get(scope, "settings");
+      const value = await this.store.get(scope, "settings");
       if (value) {
         this.caches[cacheN].c = JSON.parse(value as string);
       }
@@ -195,10 +195,10 @@ export class SettingsManager {
    * 不假设已注册，主要用于查询命令
    * @returns null 代表有注册无值，undefined 代表未注册（即使有值）
    */
-  tryGet(
+  async tryGet(
     scope: { group?: number },
     keyPath: string[] | string,
-  ): AllowedValue | undefined {
+  ): Promise<AllowedValue | undefined> {
     const { node: regInfo } = this.tryGetRegisteredNode(keyPath);
     if (!regInfo) { // 对应路径没有注册的值配置节点
       return undefined;
@@ -215,7 +215,7 @@ export class SettingsManager {
 
     let result: AllowedValue | undefined = undefined;
     for (const scope of scopes) {
-      let cur: SettingNode = this.getCache(scope);
+      let cur: SettingNode = await this.getCache(scope);
 
       for (let i = 0; i < keyPath.length; i++) {
         const edge = keyPath[i] as string;
@@ -262,11 +262,11 @@ export class SettingsManager {
   /**
    * 假设配置节点已注册
    */
-  get(
+  async get(
     scope: { group?: number },
     keyPath: string[] | string,
-  ): AllowedValue {
-    const result = this.tryGet(scope, keyPath);
+  ): Promise<AllowedValue> {
+    const result = await this.tryGet(scope, keyPath);
     if (result === undefined) {
       throw new Error(`设置路径并未被注册为值节点！路径：${keyPath}`);
     }
@@ -276,12 +276,12 @@ export class SettingsManager {
   /**
    * @returns 如果配置节点是值节点，则为 true，否则为 undefined
    */
-  trySet(
+  async trySet(
     scope: { group?: number },
     keyPath: string[] | string,
     value: AllowedValue,
-  ): true | undefined {
-    let cur = this.getCache(scope);
+  ): Promise<true | undefined> {
+    let cur = await this.getCache(scope);
     let succ = undefined;
     this.throughPath(keyPath, (edge, node, isLast, currentPath) => {
       if (!node || (isLast && node.type === "collection")) {
@@ -313,12 +313,12 @@ export class SettingsManager {
   /**
    * 假设配置节点已注册
    */
-  set(
+  async set(
     scope: { group?: number },
     keyPath: string[] | string,
     value: AllowedValue,
-  ): true {
-    const result = this.trySet(scope, keyPath, value);
+  ): Promise<true> {
+    const result = await this.trySet(scope, keyPath, value);
     if (result === undefined) {
       throw new Error(`设置路径并未被注册为值节点！路径：${keyPath}`);
     }

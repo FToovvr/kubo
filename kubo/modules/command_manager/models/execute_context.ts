@@ -46,13 +46,13 @@ export class ExecuteContext {
     return next;
   }
 
-  tryExecuteCommand(
+  async tryExecuteCommand(
     slotId: number,
     unexecuted: UnexecutedCommandPiece,
     entity: CommandEntity,
     args: CommandArgument[],
     extra: { lineNumber?: number } = {},
-  ): boolean {
+  ): Promise<boolean> {
     const { commandId, context, contextController } = this.makeCommandContext({
       prefix: unexecuted.prefix,
       head: entity.command,
@@ -64,9 +64,9 @@ export class ExecuteContext {
     });
 
     let error: ExecutionError["error"] | null = null;
-    const cbReturned = (() => {
+    const cbReturned = await (async () => {
       try {
-        return entity.callback(context, args);
+        return await entity.callback(context, args);
       } catch (e) {
         if (e instanceof CommandEvaluationError) {
           error = { level: "system", content: e.message };

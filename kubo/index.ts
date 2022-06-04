@@ -1,6 +1,6 @@
-import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
+import { Client as PgClient } from "https://deno.land/x/postgres@v0.16.0/mod.ts";
 
-import { Client } from "../go_cqhttp_client/client.ts";
+import { Client as GoCqHttpClient } from "../go_cqhttp_client/client.ts";
 import { KuboBot } from "./bot.ts";
 
 import approveAllFriendRequests from "./builtin_plugins/approve_all_friend_requests.ts";
@@ -8,14 +8,19 @@ import sensitiveFilter from "./builtin_plugins/sensitive_filter/index.ts";
 import oneMinRp from "./builtin_plugins/one_min_rp.ts";
 import { registerBuiltinCommands } from "./builtin_plugins/commands/index.ts";
 
-export function makeDefaultKuboBot(client: Client, db: DB, args: {
+export function makeDefaultKuboBot(client: GoCqHttpClient, db: PgClient, args: {
   sensitiveList?: string[];
   ownerQQ?: number | number[];
 }) {
-  return new KuboBot(client, db, args)
-    .use(approveAllFriendRequests())
-    .use(args.sensitiveList ? sensitiveFilter(args.sensitiveList) : null)
-    .batch((bot) => registerBuiltinCommands(bot))
-    // .use(oneMinRp())
-    .use(null); // 防止分号被补到上一行
+  const bot = new KuboBot(client, db, args);
+
+  bot.init((bot) => {
+    bot.use(approveAllFriendRequests())
+      .use(args.sensitiveList ? sensitiveFilter(args.sensitiveList) : null)
+      .batch((bot) => registerBuiltinCommands(bot))
+      // .use(oneMinRp())
+      .use(null); // 防止分号被补到上一行
+  });
+
+  return bot;
 }

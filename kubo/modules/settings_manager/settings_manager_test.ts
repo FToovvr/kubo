@@ -7,13 +7,15 @@ import {
 
 import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
 
-import { Store, StoreWrapper } from "../../storage.ts";
+import { StoreWrapper } from "../../storage.ts";
+import { TestStore } from "../../test_storage.ts";
 
 async function withManager(
   cb: (manager: SettingsManager) => Promise<void> | void,
 ) {
   const db = new DB();
-  const store = new Store(db);
+  const store = new TestStore();
+  store.init();
   const wrapper = new StoreWrapper(store, "settings");
   const manager = new SettingsManager(wrapper);
 
@@ -27,7 +29,7 @@ Deno.test("kubo/settings_manager", async (t) => {
   await withManager(async (m) => {
     await t.step("访问没有注册的配置节点", () => {
       // 若访问未注册的节点，set/get 将直接抛出异常
-      assertThrows(() => {
+      assertThrows(() => { // FIXME: Uncaught (in promise) Error???
         m.set({}, "foo", "bar");
       });
       assertThrows(() => {

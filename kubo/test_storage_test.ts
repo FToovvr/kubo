@@ -6,14 +6,12 @@ import { FakeTime } from "https://deno.land/x/mock@0.15.0/mod.ts";
 
 import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
 
-import { Store } from "./storage.ts";
+import { TestStore } from "./test_storage.ts";
 
-async function withNewStore(cb: (store: Store) => Promise<void> | void) {
-  const db = new DB();
-  const store = new Store(db);
+async function withNewStore(cb: (store: TestStore) => Promise<void> | void) {
+  const store = new TestStore();
   await cb(store);
   store.close();
-  db.close();
 }
 
 Deno.test("kubo/storage set&get", async () => {

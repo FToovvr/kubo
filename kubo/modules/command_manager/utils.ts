@@ -129,7 +129,7 @@ function hasAdjoiningTextPieces(msg: MessagePiece[]) {
 }
 
 // TODO: testing
-export function generateUnifiedResponse(
+export async function generateUnifiedResponse(
   { cmdsResps }: { cmdsResps: CommandResponses[] },
 ) {
   if (cmdsResps.length === 0) return null;
@@ -141,7 +141,7 @@ export function generateUnifiedResponse(
     // if (i !== 0) {
     //   out.push(text("-".repeat(16)));
     // }
-    out.push(...generateUnifiedResponseForSingleCommand(cmdResps, true));
+    out.push(...await generateUnifiedResponseForSingleCommand(cmdResps, true));
     if (i < cmdsResps.length - 1) {
       out.push(text("\n"));
     }
@@ -152,7 +152,7 @@ export function generateUnifiedResponse(
   return out;
 }
 
-function generateUnifiedResponseForSingleCommand(
+async function generateUnifiedResponseForSingleCommand(
   responses: CommandResponses,
   requiresPreview: boolean,
 ) {
@@ -160,7 +160,7 @@ function generateUnifiedResponseForSingleCommand(
   if (requiresPreview) {
     out.push(
       text("⊛ "),
-      ...responses.command.generatePreview(),
+      ...await responses.command.generatePreview(),
       text(" ➩\n"),
     );
   } else {

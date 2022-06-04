@@ -6,7 +6,7 @@ import { CommandContext } from "./execute_context.ts";
 export type CommandCallback = (
   ctx: CommandContext,
   args: CommandArgument[],
-) => CommandCallbackReturnValue;
+) => CommandCallbackReturnValue | Promise<CommandCallbackReturnValue>;
 
 /**
  * 存储注册命令数据所用的数据结构。

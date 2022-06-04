@@ -13,7 +13,7 @@ type TestCallback = (
   command: string,
   ctx: CommandContext,
   args: CommandArgument[],
-) => CommandCallbackReturnValue;
+) => CommandCallbackReturnValue | Promise<CommandCallbackReturnValue>;
 
 interface MakeContextArgs {
   supportedStyles?: Required<LooseCommandEntity["supportedStyles"]>;

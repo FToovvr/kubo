@@ -34,12 +34,12 @@ interface EvaluatorEnvironment<Bot extends BaseBot = KuboBot> {
   bot: Bot;
 }
 
-export function evaluateMessage<Bot extends BaseBot = KuboBot>(
+export async function evaluateMessage<Bot extends BaseBot = KuboBot>(
   ctx: EvaluatorEnvironment<Bot>,
   msg: RegularMessagePiece[],
 ) {
   const evaluator = new MessageEvaluator(ctx, msg);
-  const processResult = evaluator.execute();
+  const processResult = await evaluator.execute();
   const embeddingResult = (() => {
     if (evaluator.hasEmbeddedCommand) {
       return evaluator.generateEmbeddedOutput();
@@ -134,7 +134,7 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
     this.parsedMessage = tokenizeMessage(env, cleanedMessage);
   }
 
-  execute(): "skip" | "pass" {
+  async execute(): Promise<"skip" | "pass"> {
     if (this.parsedMessage === undefined) throw new Error("never");
     if (!this.parsedMessage) return "skip";
     if (this.executedMessage) throw new Error("never");
@@ -164,7 +164,7 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
           this.executeContext,
           unexecutedPiece,
         );
-        executedLine.push(result);
+        executedLine.push(await result);
       }
       this.executedMessage.push(executedLine);
     }
@@ -174,13 +174,13 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
       if (this.executedMessage[lineIndex].length !== 0) {
         throw new Error("never");
       }
-      const executed = cmd.execute(this.executeContext, {
+      const executed = await cmd.execute(this.executeContext, {
         lineNumber: lineIndex + 1,
       });
       if (executed) {
         this.executedMessage[lineIndex].push(executed);
       } else {
-        const result = cmd.asLineExecuted(this.executeContext);
+        const result = await cmd.asLineExecuted(this.executeContext);
         this.executedMessage[lineIndex].push(...result);
       }
     }

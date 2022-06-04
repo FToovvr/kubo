@@ -20,6 +20,7 @@ import {
   _test_makeMessageOfPrivateEvent,
 } from "../../../go_cqhttp_client/test_utils.ts";
 import { replyAt, text } from "../../../go_cqhttp_client/message_piece.ts";
+import { TestStore } from "../../test_storage.ts";
 
 async function withCommandManager(
   selfQQ: number,
@@ -33,7 +34,8 @@ async function withCommandManager(
   ) => void | Promise<void>,
 ) {
   const db = new DB();
-  const store = new Store(db);
+  const store = new TestStore();
+  store.init();
   const wrapper = new StoreWrapper(store, "settings");
   const settingsManager = new SettingsManager(wrapper);
 
@@ -233,7 +235,10 @@ Deno.test(`${testPrefix} 回复`, async (t) => {
               spies.sendGroupMessage,
               0,
               {
-                args: [groupId, [...expectedReplyAt, text(expectedResponse)]],
+                args: [groupId, [
+                  ...expectedReplyAt.array,
+                  text(expectedResponse),
+                ]],
               },
             );
             assertSpyCalls(spies.sendPrivateMessage, 0);

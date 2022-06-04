@@ -1,30 +1,17 @@
-import { Client as PgClient } from "https://deno.land/x/postgres@v0.16.0/mod.ts";
-
+import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
 import utils from "./utils.ts";
 
 import { KuboPlugin } from "./bot.ts";
+import { IStore } from "./storage.ts";
 
 type Value = number | string | null;
 
-export interface IStore {
-  get: (
-    ctx: { namespace: string; group?: number; qq?: number },
-    key: string,
-  ) => Promise<Value>;
-  set: (
-    ctx: { namespace: string; group?: number; qq?: number },
-    key: string,
-    val: Value,
-    args: { expireTimestamp?: number; expireInterval?: number },
-  ) => Promise<void>;
-}
-
-export class Store implements IStore {
-  private db: PgClient;
+export class TestStore implements IStore {
+  private db: DB;
   private intervalId!: number;
 
-  constructor(db: PgClient) {
-    this.db = db;
+  constructor() {
+    this.db = new DB(":memory:");
   }
 
   async init() {
@@ -33,13 +20,13 @@ export class Store implements IStore {
       CREATE TABLE IF NOT EXISTS store (
         "namespace" TEXT NOT NULL,
         -- group 与 qq 其一为 0 代表只涉及另一者对应的 QQ 或群，两者皆为 0 代表适用全局
-        "group" BIGINT NOT NULL DEFAULT 0, -- int64
-        "qq" BIGINT NOT NULL DEFAULT 0, -- int64
+        "group" NUMBER NOT NULL DEFAULT 0,
+        "qq" NUMBER NOT NULL DEFAULT 0,
 
         "key" TEXT NOT NULL,
         "value" TEXT NULL,
 
-        "expire_timestamp" BIGINT NULL DEFAULT NULL,
+        "expire_timestamp" NUMBER NULL DEFAULT NULL,
 
         PRIMARY KEY ("namespace", "group", "qq", "key")
       );`,
@@ -50,10 +37,10 @@ export class Store implements IStore {
     ];
 
     for (const query of queries) {
-      await this.db.queryArray(query);
+      this.db.query(query);
     }
 
-    await this.cleanExpired();
+    this.cleanExpired();
 
     // 20 分钟清理一次
     this.intervalId = setInterval(this.cleanExpired.bind(this), 1000 * 60 * 20);
@@ -61,11 +48,12 @@ export class Store implements IStore {
 
   close() {
     clearInterval(this.intervalId);
+    this.db.close();
   }
 
-  async cleanExpired() {
+  cleanExpired() {
     const now = utils.now();
-    await this.db.queryArray`DELETE FROM store WHERE expire_timestamp < ${now}`;
+    this.db.query(`DELETE FROM store WHERE expire_timestamp < ?`, [now]);
   }
 
   async get(
@@ -75,14 +63,13 @@ export class Store implements IStore {
     if ((ctx.group ?? 1) <= 0 || (ctx.qq ?? 1) <= 0) {
       throw new Error(`不正确的 QQ 或群号：${ctx}`);
     }
-    const result = await this.db.queryArray`
+    const rows = this.db.query(
+      `
       SELECT "value", "expire_timestamp" FROM store
-      WHERE "namespace" = ${ctx.namespace}
-        AND "group" = ${ctx.group ?? 0}
-        AND "qq" = ${ctx.qq ?? 0}
-        AND "key" = ${key}
-    `;
-    const rows = result.rows;
+      WHERE "namespace" = ? AND "group" = ? AND "qq" = ? AND "key" = ?
+    `,
+      [ctx.namespace, ctx.group ?? 0, ctx.qq ?? 0, key],
+    );
     if (rows.length === 0) {
       return null;
     }
@@ -108,13 +95,13 @@ export class Store implements IStore {
     }
 
     if (val === null) {
-      await this.db.queryArray`
+      this.db.query(
+        `
         DELETE FROM store
-        WHERE "namespace" = ${ctx.namespace}
-          AND "group" = ${ctx.group ?? 0}
-          AND "qq" = ${ctx.qq ?? 0}
-          AND "key" = ${key}
-      `;
+        WHERE "namespace" = ? AND "group" = ? AND "qq" = ? AND "key" = ?
+      `,
+        [ctx.namespace, ctx.group ?? 0, ctx.qq ?? 0, key],
+      );
       return;
     }
 
@@ -129,59 +116,19 @@ export class Store implements IStore {
       return tsExplicit ?? tsByInterval;
     })();
 
-    await this.db.queryArray`
+    this.db.query(
+      `
       INSERT OR REPLACE INTO store ("namespace", "group", "qq", "key", "value", "expire_timestamp")
-        values (
-          ${ctx.namespace},
-          ${ctx.group ?? 0},
-          ${ctx.qq ?? 0},
-          ${key},
-          ${val},
-          ${expireTimestamp})
-      `;
-  }
-}
-
-export class StoreWrapper {
-  store: IStore;
-  private _namespace: string;
-  public get namespace(): string {
-    return this._namespace;
-  }
-
-  constructor(store: IStore, namespace: string) {
-    this.store = store;
-    this._namespace = namespace;
-  }
-
-  async get(ctx: { group?: number; qq?: number }, key: string) {
-    return await this.store.get({ namespace: this.namespace, ...ctx }, key);
-  }
-
-  async set(
-    ctx: { group?: number; qq?: number },
-    key: string,
-    val: Value,
-    args: { expireTimestamp?: number } = {},
-  ) {
-    return await this.store.set(
-      { namespace: this.namespace, ...ctx },
-      key,
-      val,
-      args,
+        values (?, ?, ?, ?, ?, ?)
+    `,
+      [
+        ctx.namespace,
+        ctx.group ?? 0,
+        ctx.qq ?? 0,
+        key,
+        val,
+        expireTimestamp,
+      ],
     );
-  }
-}
-
-export class PluginStoreWrapper extends StoreWrapper {
-  pluginId: string;
-
-  constructor(store: Store, plugin: KuboPlugin) {
-    super(store, "never");
-    this.pluginId = plugin.id;
-  }
-
-  override get namespace() {
-    return `p.${this.pluginId}`;
   }
 }

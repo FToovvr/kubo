@@ -5,4 +5,4 @@ if [[ "$(uname -m)" == "aarch64" ]]; then
   CHECK_OR_NOT=--no-check
 fi
 
-deno run $CHECK_OR_NOT --allow-net --allow-read --allow-write debug_main.ts
+deno run $CHECK_OR_NOT --allow-net --allow-read --allow-write --allow-env debug_main.ts

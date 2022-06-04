@@ -88,6 +88,8 @@ type _MockKuboBotOnMessage = (
 export class CommandManager {
   #bot: KuboBot | _MockKuboBot;
 
+  prefix!: string;
+
   readonly commands: CommandTrie = new Trie<CommandEntity>();
 
   constructor(bot: KuboBot | _MockKuboBot) {
@@ -114,28 +116,30 @@ export class CommandManager {
     this.commands.set(command, entity);
   }
 
-  private processMessage(
+  private async processMessage(
     bot: KuboBot | _MockKuboBot,
     msg: string | MessagePiece[],
     ev: MessageEvent,
-  ): ProcessResult<true> {
+  ): Promise<ProcessResult<true>> {
     let group: number | null = null;
     let callerQQ = ev.sender.qq;
     if (ev instanceof MessageOfGroupEvent) {
       group = ev.groupId;
     }
     const scope = group ? { group } : {};
-    const prefix = this.#bot.settings.get(scope, "prefix") as string;
+    const prefix = await this.#bot.settings.get(scope, "prefix") as string;
 
     if (typeof msg === "string") {
       msg = [text(msg)];
     }
-    const { processResult, embeddingResult, responses } = evaluateMessage(
+    const { processResult, embeddingResult, responses } = await evaluateMessage(
       { bot, commandTrie: this.commands, prefix },
       msg as RegularMessagePiece[], // TODO: 从源头使用 RegularMessagePiece
     );
 
-    const unifiedResponse = generateUnifiedResponse({ cmdsResps: responses });
+    const unifiedResponse = await generateUnifiedResponse({
+      cmdsResps: responses,
+    });
 
     if (
       ((embeddingResult?.length ?? 0) === 0) &&

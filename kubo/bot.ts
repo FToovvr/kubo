@@ -1,6 +1,6 @@
-import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
+import { Client as PgClient } from "https://deno.land/x/postgres@v0.16.0/mod.ts";
 
-import { Client } from "../go_cqhttp_client/client.ts";
+import { Client as GoCqHttpClient } from "../go_cqhttp_client/client.ts";
 import {
   FriendRequestEvent,
   MessageEvent,
@@ -51,7 +51,7 @@ export type OnMessageCallback<
   msg: (Msg extends "text" ? string
     : (Msg extends "pieces" ? MessagePiece[] : (MessagePiece[] | string))),
   ev: T,
-) => ProcessResult<CanPass>;
+) => ProcessResult<CanPass> | Promise<ProcessResult<CanPass>>;
 export type OnAllMessageCallback<
   Msg extends MessageKind,
   CanPass extends boolean = true,
@@ -101,8 +101,8 @@ function extractMessageFilter(m: MessageMatcher | FallbackMessageMatcher) {
 
 export class KuboBot {
   // 不建议插件直接使用
-  _client: Client;
-  _db: DB;
+  _client: GoCqHttpClient;
+  _db: PgClient;
   _store: Store;
 
   self!: {
@@ -110,8 +110,9 @@ export class KuboBot {
     nickname: string;
   };
 
-  settings: SettingsManager;
-  messages: MessageManager;
+  settings!: SettingsManager;
+  messages!: MessageManager;
+  commands!: CommandManager;
 
   utils = utils;
 
@@ -125,26 +126,46 @@ export class KuboBot {
     afterInit: [] as ((bot: KuboBot) => void)[],
   };
 
-  constructor(client: Client, db: DB, cfg?: {
+  constructor(client: GoCqHttpClient, db: PgClient, cfg?: {
     ownerQQ?: number | number[];
   }) {
     this._client = client;
     this._db = db;
     this._store = new Store(db);
-    this.settings = new SettingsManager(
-      new StoreWrapper(this._store, "settings"),
-    );
-    this.messages = new MessageManager(db, this._client);
+
     this.ownerQQ = cfg?.ownerQQ || null;
-    this.initHelpers();
   }
 
   log(label: string, level: "debug" | "info", ...args: any[]) {
     console.log(level, label, ...args);
   }
 
+  #initCallbacks: ((bot: KuboBot) => void)[] = [];
+  init(cb: (bot: KuboBot) => void) {
+    this.#initCallbacks.push(cb);
+  }
+
   async run() {
     await this._client.start();
+    await this._db.connect();
+    await this._store.init();
+    this.initOnMessage();
+
+    {
+      this.settings = new SettingsManager(
+        new StoreWrapper(this._store, "settings"),
+      );
+
+      this.messages = new MessageManager(this._db, this._client);
+      this.messages.init();
+
+      // 需要 initOnMessage
+      this.commands = new CommandManager(this);
+    }
+
+    for (const cb of this.#initCallbacks) {
+      cb(this);
+    }
 
     this.self = await this._client.getLoginInfo();
     this.log(
@@ -158,7 +179,7 @@ export class KuboBot {
 
   async close() {
     this._store.close();
-    this._db.close();
+    await this._db.end();
   }
 
   //==== on Plugins ====
@@ -213,11 +234,6 @@ export class KuboBot {
   }
 
   //==== Helpers ====
-
-  private initHelpers() {
-    this.initOnMessage();
-    this.initCommandManager();
-  }
 
   private onMessageCallbacks: (
     | ["all", MessageMatcher, OnAllMessageCallback<"unknown">]
@@ -286,7 +302,7 @@ export class KuboBot {
       }
     };
 
-    this._client.eventClient.callbacks.onMessage.push((ev, type) => {
+    this._client.eventClient.callbacks.onMessage.push(async (ev, type) => {
       let isProcessed = false;
       const pureText = this.utils.tryExtractPureText(ev.message);
       OUT:
@@ -312,14 +328,14 @@ export class KuboBot {
           if (!pureText) continue;
           // 处理消息是纯文本的情况
           // FIXME: 为什么可能会返回 undefined？
-          result = processPureTextMessage(
+          result = await processPureTextMessage(
             ev,
             pureText,
             filteredMatcher.text,
             callback as unknown as any, // 弃疗
           ) ?? "skip";
         } else if (filteredMatcher.complex) {
-          result = processComplexMessage(
+          result = await processComplexMessage(
             ev,
             pureText ?? ev.message,
             filteredMatcher.complex,
@@ -342,7 +358,7 @@ export class KuboBot {
             continue;
           }
 
-          const result = cb(this, pureText ?? ev.message, ev);
+          const result = await cb(this, pureText ?? ev.message, ev);
           if (result === "stop") {
             isProcessed = true;
             break OUT;
@@ -387,12 +403,6 @@ export class KuboBot {
       msgMatcher as MessageMatcher,
       cb as unknown as any,
     ]);
-  }
-
-  commands!: CommandManager;
-
-  initCommandManager() {
-    this.commands = new CommandManager(this);
   }
 
   //==== Actions ====
