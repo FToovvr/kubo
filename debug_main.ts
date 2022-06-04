@@ -146,15 +146,6 @@ async function main() {
       return "stop";
     });
 
-    bot.onMessage("all", { unprocessed: true }, (bot, _, ev) => {
-      bot.log("test", "debug", { ev });
-      console.log({
-        before: ev.message,
-        after: bot.utils.removeReferenceFromMessage(ev.message),
-      });
-      return "stop";
-    });
-
     bot.commands.registerCommand("随机单色图片", {
       readableName: "随机单色图片",
       description: "生产随机单色图片",
