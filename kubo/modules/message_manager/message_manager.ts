@@ -143,13 +143,13 @@ export class MessageManager {
     } else if (_ev.post_type === "notice") {
       const ev = _ev as NoticeRawEvent;
       await this.db.queryArray`
-        INSERT INTO history_request ("time", "request_type", "raw")
+        INSERT INTO history_notice ("time", "notice_type", "raw")
           VALUES (${ev.time}, ${ev.notice_type}, ${JSON.stringify(ev)})
       `;
     } else {
       const ev = _ev as RawEvent;
       await this.db.queryArray`
-        INSERT INTO history_request ("time", "request_type", "raw")
+        INSERT INTO history_unknown ("time", "post_type", "raw")
           VALUES (${ev.time}, ${ev.post_type}, ${JSON.stringify(ev)})
       `;
     }
