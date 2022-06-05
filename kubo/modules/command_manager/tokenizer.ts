@@ -435,7 +435,10 @@ class PreComplexPiece implements MessagePiece {
     let isAwait = false;
     let prefix: string | null;
     let prefixEndOffset: number;
-    if (leadText.startsWith(ctx.prefix)) {
+    if (
+      leadText.startsWith(ctx.prefix) &&
+      leadText.length > ctx.prefix.length
+    ) {
       prefix = ctx.prefix;
       prefixEndOffset = ctx.prefix.length;
       if (leadText[prefixEndOffset].startsWith(theAwaitMark)) {
