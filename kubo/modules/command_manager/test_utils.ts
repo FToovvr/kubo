@@ -6,12 +6,12 @@ import {
   CommandCallbackReturnValue,
   CommandEntity,
 } from "./models/command_entity.ts";
-import { CommandContext } from "./models/execute_context.ts";
+import { PluginContextForCommand } from "./models/execute_context.ts";
 import { TokenizingEnvironment } from "./tokenizer.ts";
 
 type TestCallback = (
   command: string,
-  ctx: CommandContext,
+  ctx: PluginContextForCommand,
   args: CommandArgument[],
 ) => CommandCallbackReturnValue | Promise<CommandCallbackReturnValue>;
 
