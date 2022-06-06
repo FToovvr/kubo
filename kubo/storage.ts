@@ -10,7 +10,7 @@ export interface IStore {
   get: (
     ctx: { namespace: string; group?: number; qq?: number },
     key: string,
-  ) => Promise<Value>;
+  ) => Promise<string | null>;
   set: (
     ctx: { namespace: string; group?: number; qq?: number },
     key: string,
@@ -91,7 +91,7 @@ export class Store implements IStore {
     if (expire_timestamp && now > expire_timestamp) { // 清理的事情交给别处
       return null;
     }
-    return value;
+    return value as string;
   }
 
   async set(
