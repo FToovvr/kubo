@@ -50,59 +50,11 @@ export class SettingsManager {
     this.store = store;
   }
 
-  private throughPath(
-    path: string[] | string,
-    cb: (
-      edge: string,
-      node: SettingRegisterNode | null,
-      isLast: boolean,
-      currentPath: string[],
-    ) => void | SettingRegisterNode | "break",
-    args?: {
-      allowReplaceLastNode?: boolean;
-    },
-  ) {
-    if (typeof path === "string") {
-      path = [path];
-    }
-    args = {
-      allowReplaceLastNode: false,
-      ...args,
-    };
-
-    let node = this.registry;
-    const currentPath: string[] = [];
-    for (const [i, edge] of path.entries()) {
-      const isLast = i === path.length - 1;
-      currentPath.push(edge);
-      node.children = node.children ?? {};
-      let child = node.children[edge] ?? null;
-
-      const ret = cb(edge, child, isLast, currentPath);
-      if (ret instanceof Object) {
-        if (!isLast) {
-          throw new Error(`在穿过设置路径途中提供了新节点！位置：${currentPath}}`);
-        } else if (child && !args.allowReplaceLastNode) {
-          throw new Error(`提供的节点原处已存在节点！位置：${currentPath}}`);
-        }
-        // isLast
-        node.children[edge] = ret;
-      } else if (ret === "break") {
-        break;
-      } else {
-        if (!child) {
-          throw new Error(`穿过设置路径中的空设置节点！位置：${currentPath}}`);
-        }
-        node = child;
-      }
-    }
-  }
-
-  registerCollection(
+  async registerCollection(
     path: string[] | string,
     args: { info: { readableName: string; description: string } },
   ) {
-    this.throughPath(path, (edge, node, isLast, currentPath) => {
+    await throughPath(this.registry, path, (edge, node, isLast, curPath) => {
       if (isLast) {
         return {
           type: "collection",
@@ -111,7 +63,7 @@ export class SettingsManager {
         };
       }
       if (node?.type === "leaf") {
-        throw new Error(`值节点之下不能有其他节点！位置：${currentPath}`);
+        throw new Error(`值节点之下不能有其他节点！位置：${curPath}`);
       }
     });
   }
@@ -119,7 +71,7 @@ export class SettingsManager {
   /**
    * @param converter 如果与已存的数据不符，需要转换
    */
-  register<T extends AllowedValueType>(
+  async register<T extends AllowedValueType>(
     keyPath: string[] | string,
     args: {
       info: { readableName: string; description: string };
@@ -129,7 +81,7 @@ export class SettingsManager {
       force?: boolean; // 其实是为了测试
     },
   ) {
-    this.throughPath(keyPath, (edge, node, isLast, currentPath) => {
+    await throughPath(this.registry, keyPath, (edge, node, isLast, curPath) => {
       if (isLast) {
         return {
           type: "leaf",
@@ -141,21 +93,21 @@ export class SettingsManager {
         };
       }
       if (node?.type === "leaf") {
-        throw new Error(`值节点之下不能有其他节点！位置：${currentPath}`);
+        throw new Error(`值节点之下不能有其他节点！位置：${curPath}`);
       }
     }, {
       allowReplaceLastNode: args.force ?? false,
     });
   }
 
-  tryGetRegisteredNode(keyPath: string[] | string): {
+  async tryGetRegisteredNode(keyPath: string[] | string): Promise<{
     node?: SettingRegisterNode;
     collectionNode?: SettingRegisterNode;
-  } {
+  }> {
     let node: SettingRegisterNode | null = null;
     let collectionNode: SettingRegisterNode | null = null;
 
-    this.throughPath(keyPath, (edge, curNode, isLast, currentPath) => {
+    await throughPath(this.registry, keyPath, (_1, curNode, isLast, _2) => {
       if (!curNode) {
         return "break"; // node = null
       }
@@ -174,9 +126,13 @@ export class SettingsManager {
     };
   }
 
-  private writeBack(scope: { group?: number }) {
+  private async writeBack(scope: { group?: number }) {
     const cacheN = scope.group ?? 0;
-    this.store.set(scope, "settings", JSON.stringify(this.caches[cacheN].c));
+    await this.store.set(
+      scope,
+      "settings",
+      JSON.stringify(this.caches[cacheN].c),
+    );
   }
 
   private async getCache(scope: { group?: number }) {
@@ -199,7 +155,7 @@ export class SettingsManager {
     scope: { group?: number },
     keyPath: string[] | string,
   ): Promise<AllowedValue | undefined> {
-    const { node: regInfo } = this.tryGetRegisteredNode(keyPath);
+    const { node: regInfo } = await this.tryGetRegisteredNode(keyPath);
     if (!regInfo) { // 对应路径没有注册的值配置节点
       return undefined;
     }
@@ -244,7 +200,7 @@ export class SettingsManager {
             } else {
               cur.c[edge].v = result;
             }
-            this.writeBack(scope);
+            await this.writeBack(scope);
           }
         } else {
           cur = cur.c[edge];
@@ -283,7 +239,7 @@ export class SettingsManager {
   ): Promise<true | undefined> {
     let cur = await this.getCache(scope);
     let succ = undefined;
-    this.throughPath(keyPath, (edge, node, isLast, currentPath) => {
+    await throughPath(this.registry, keyPath, async (edge, node, isLast, _) => {
       if (!node || (isLast && node.type === "collection")) {
         return "break"; // result = undefined
       }
@@ -291,7 +247,7 @@ export class SettingsManager {
         if (cur.c && cur.c[edge]) {
           if (!cur.c[edge].c || Object.keys(cur.c[edge].c!).length === 0) {
             delete cur.c[edge];
-            this.writeBack(scope);
+            await this.writeBack(scope);
           }
         }
         succ = true;
@@ -301,7 +257,7 @@ export class SettingsManager {
       cur.c[edge] = cur.c[edge] ?? {};
       if (isLast) {
         cur.c[edge].v = value;
-        this.writeBack(scope);
+        await this.writeBack(scope);
         succ = true;
       } else {
         cur = cur.c[edge];
@@ -323,5 +279,55 @@ export class SettingsManager {
       throw new Error(`设置路径并未被注册为值节点！路径：${keyPath}`);
     }
     return result;
+  }
+}
+
+type ThroughPathCallbackReturnValue = void | SettingRegisterNode | "break";
+async function throughPath(
+  registry: SettingRegisterNode,
+  path: string[] | string,
+  cb: (
+    edge: string,
+    node: SettingRegisterNode | null,
+    isLast: boolean,
+    currentPath: string[],
+  ) => ThroughPathCallbackReturnValue | Promise<ThroughPathCallbackReturnValue>,
+  args?: {
+    allowReplaceLastNode?: boolean;
+  },
+) {
+  if (typeof path === "string") {
+    path = [path];
+  }
+  args = {
+    allowReplaceLastNode: false,
+    ...args,
+  };
+
+  let node = registry;
+  const currentPath: string[] = [];
+  for (const [i, edge] of path.entries()) {
+    const isLast = i === path.length - 1;
+    currentPath.push(edge);
+    node.children = node.children ?? {};
+    let child = node.children[edge] ?? null;
+
+    const ret = await cb(edge, child, isLast, currentPath);
+    if (ret instanceof Object) {
+      if (!isLast) {
+        throw new Error(`在穿过设置路径途中提供了新节点！位置：${currentPath}}`);
+      } else if (child && !args.allowReplaceLastNode) {
+        throw new Error(`提供的节点原处已存在节点！位置：${currentPath}}`);
+      }
+      // isLast
+      node.children[edge] = ret;
+    } else if (ret === "break") {
+      break;
+    } else {
+      if (!child) {
+        throw new Error(`穿过设置路径中的空设置节点！位置：${currentPath}}`);
+      }
+      node = child;
+    }
   }
 }

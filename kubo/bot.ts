@@ -157,10 +157,11 @@ export class KuboBot {
       );
 
       this.messages = new MessageManager(this._db, this._client);
-      this.messages.init();
+      await this.messages.init();
 
       // 需要 initOnMessage
       this.commands = new CommandManager(this);
+      await this.commands.init();
     }
 
     for (const cb of this.#initCallbacks) {

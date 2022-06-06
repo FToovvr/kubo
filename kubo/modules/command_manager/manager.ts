@@ -94,8 +94,10 @@ export class CommandManager {
 
   constructor(bot: KuboBot | _MockKuboBot) {
     this.#bot = bot;
+  }
 
-    this.#bot.settings.register("prefix", {
+  async init() {
+    await this.#bot.settings.register("prefix", {
       info: { readableName: "命令前缀", description: "触发命令的前缀" },
       valueType: "string",
       default: "/",
