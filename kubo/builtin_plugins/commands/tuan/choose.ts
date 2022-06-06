@@ -3,7 +3,6 @@ import {
   text,
 } from "../../../../go_cqhttp_client/message_piece.ts";
 import { KuboPlugin } from "../../../bot.ts";
-import { LooseCommandEntity } from "../../../modules/command_manager/manager.ts";
 import { CommandArgument } from "../../../modules/command_manager/models/command_argument.ts";
 import {
   CommandCallback,
@@ -13,6 +12,7 @@ import { generateEmbeddedOutput } from "../../../modules/command_manager/models/
 import { ExecutedLine } from "../../../modules/command_manager/types.ts";
 import utils from "../../../utils.ts";
 import {
+  _temp_registerCommandWithAliases,
   makeBadArgumentsError,
   makeUnknownArgumentErrorText,
   makeUsageResponse,
@@ -67,7 +67,7 @@ choose c
       只能在整行书写形式中使用，不能在嵌入书写形式中使用。
 `.trim();
 
-const callback: CommandCallback = async (ctx, args) => {
+const callback: CommandCallback = (ctx, args) => {
   let shouldSendUsage = false;
   let possibleSources: "list" | "arg" | "both" = "both";
   let errors: string[] = [];
@@ -222,14 +222,11 @@ export default function () {
     id,
 
     init(bot) {
-      // TODO: 以 choose 为正式命令，以 c 为别名。
-      const entity: LooseCommandEntity = {
+      _temp_registerCommandWithAliases(bot.commands, "choose", {
         readableName: "选择",
         description: "从候选内容中任选其一",
         callback,
-      };
-      bot.commands.registerCommand("choose", entity);
-      bot.commands.registerCommand("c", entity);
+      }, ["c"]);
     },
   };
 

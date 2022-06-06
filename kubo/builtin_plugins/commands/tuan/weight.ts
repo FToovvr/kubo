@@ -1,7 +1,10 @@
 import { KuboPlugin } from "../../../bot.ts";
-import { LooseCommandEntity } from "../../../modules/command_manager/manager.ts";
 import { CommandCallback } from "../../../modules/command_manager/models/command_entity.ts";
-import { makeBadArgumentsError, makeUsageResponse } from "../utils.ts";
+import {
+  _temp_registerCommandWithAliases,
+  makeBadArgumentsError,
+  makeUsageResponse,
+} from "../utils.ts";
 
 const id = "cmd_weight";
 
@@ -24,7 +27,7 @@ weight w
     - 随机选择会从权重为无限的列表项中等概率选取其一。
 `.trim();
 
-const callback: CommandCallback = async (ctx, args) => {
+const callback: CommandCallback = (ctx, args) => {
   if (args.length === 0 || args.filter((arg) => arg.flag === "h").length) {
     return makeUsageResponse(ctx, usage);
   }
@@ -58,16 +61,13 @@ export default function () {
     id,
 
     init(bot) {
-      // TODO: 以 weight 为正式命令，以 w 为别名。
-      const entity: LooseCommandEntity = {
+      _temp_registerCommandWithAliases(bot.commands, "weight", {
         readableName: "权重",
         description: "设置列表项权重",
         supportedStyles: "embedded",
         argumentsBeginningPolicy: "unrestricted",
         callback,
-      };
-      bot.commands.registerCommand("weight", entity);
-      bot.commands.registerCommand("w", entity);
+      }, ["w"]);
     },
   };
 

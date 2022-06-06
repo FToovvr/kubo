@@ -1,3 +1,7 @@
+import {
+  CommandManager,
+  LooseCommandEntity,
+} from "../../modules/command_manager/manager.ts";
 import { CommandArgument } from "../../modules/command_manager/models/command_argument.ts";
 import { CommandCallbackReturnValue } from "../../modules/command_manager/models/command_entity.ts";
 import { PluginContextForCommand } from "../../modules/command_manager/models/execute_context.ts";
@@ -35,4 +39,16 @@ export function makeBadArgumentsError(
   return {
     error: "参数有误，" + errors[0] + "！" + makeCheckUsageText(ctx),
   };
+}
+
+// TODO: 正式的别名方案
+export function _temp_registerCommandWithAliases(
+  commandManager: CommandManager,
+  head: string,
+  entity: LooseCommandEntity,
+  aliases: string[],
+) {
+  for (const curHead of [head, ...aliases]) {
+    commandManager.registerCommand(curHead, entity);
+  }
 }
