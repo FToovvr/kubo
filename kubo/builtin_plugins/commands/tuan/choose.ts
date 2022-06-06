@@ -75,8 +75,6 @@ const callback: CommandCallback = async (ctx, args) => {
   let nth: number | null = null;
   let argLots: CommandArgument[] | null = null;
 
-  console.log(Deno.inspect({ args }, { depth: Infinity, colors: true }));
-
   for (const [i, arg] of args.entries()) {
     const flag = arg.flag;
     if (flag) {
