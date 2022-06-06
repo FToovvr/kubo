@@ -17,7 +17,7 @@ weight w
     （本命令允许头部与参数之间没有空白相隔）
 
 选项：
-    <n> 权重，正整数或 “Infinity”。
+    <n> 权重，正整数。
 
 额外说明：
     没有本命令改变权重的列表权重默认为 1。
@@ -33,16 +33,14 @@ const callback: CommandCallback = (ctx, args) => {
   }
 
   let error: string | null = null;
-  let num: number | null;
+  let num: bigint | null;
   if (args.length !== 1) {
     error = `预期 1 个参数，得到 ${args.length} 个参数`;
-    num = NaN;
+    num = null;
   } else {
-    num = args[0].number;
+    num = args[0].bigint;
     if (num === null) {
-      error = "请提供数字参数";
-    } else if (!Number.isInteger(num) && num !== Infinity) {
-      error = "请提供整数参数，或者以 Infinity 作为参数";
+      error = "请提供整数参数";
     } else if (num < 1) {
       error = "请提供正数参数";
     }

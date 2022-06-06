@@ -72,7 +72,7 @@ const callback: CommandCallback = (ctx, args) => {
   let possibleSources: "list" | "arg" | "both" = "both";
   let errors: string[] = [];
 
-  let nth: number | null = null;
+  let nth: bigint | null = null;
   let argLots: CommandArgument[] | null = null;
 
   for (const [i, arg] of args.entries()) {
@@ -99,16 +99,14 @@ const callback: CommandCallback = (ctx, args) => {
       }
       continue;
     }
-    const number = arg.number;
-    if (number !== null) {
+    const number = arg.bigint;
+    if (number === null && arg.number !== null) {
+      errors.push("序号并非整数");
+    } else if (number !== null) {
       if (nth !== null) {
         errors.push("参数列表中存在多个序号");
-      } else if (!Number.isInteger(number)) {
-        errors.push("序号并非整数");
       } else if (number < 1) {
         errors.push("序号并非正数");
-      } else if (number === Infinity) {
-        errors.push("序号过大");
       } else {
         nth = number;
       }
@@ -126,7 +124,7 @@ const callback: CommandCallback = (ctx, args) => {
     if (!argLots.length) return { error: "已指定候选参数位于参数列表，但参数列表中没有候选内容！" };
     let chosen: CommandArgument;
     if (nth) {
-      chosen = argLots[(nth - 1) % argLots.length];
+      chosen = argLots[Number((nth - 1n) % BigInt(argLots.length))];
     } else {
       chosen = argLots[utils.randInt(0, argLots.length - 1)];
     }
@@ -142,46 +140,38 @@ const callback: CommandCallback = (ctx, args) => {
     throw new Error("never");
   }
 
-  type ListLot = { line: ExecutedLine; weight: number };
+  type ListLot = { line: ExecutedLine; weight: bigint };
   const listLots: ListLot[] = [];
-  const infLists: ExecutedLine[] = [];
 
   for (const line of listLines) {
-    listLots.push({ line, weight: 0 });
+    listLots.push({ line, weight: 0n });
     for (const piece of line) {
       if (piece.type !== "__kubo_executed_command") continue;
       const value = piece.result?.embeddingRaw?.value ?? {};
       if (!("listItemWeight" in value)) continue;
       const weight = value.listItemWeight;
-      if (typeof value !== "number") continue;
-      if (!Number.isInteger(value) && value !== Infinity) continue;
+      if (typeof value !== "bigint") continue;
       listLots[listLots.length - 1].weight += weight;
     }
-    if (listLots[listLots.length - 1].weight === Infinity) {
-      infLists.push(line);
-    }
   }
 
-  if (infLists.length && !nth) {
-    const chosen = infLists[utils.randInt(0, infLists.length - 1)];
-    return makeResponse(
-      ctx.isEmbedded,
-      generateEmbeddedOutput(chosen),
-      isByRandom,
-    );
-  }
-
-  let totalWeight = 0;
+  let totalWeight = 0n;
   for (const lot of listLots) {
-    if (lot.weight === 0) {
-      lot.weight = 1;
+    if (lot.weight === 0n) {
+      lot.weight = 1n;
+    } else if (lot.weight < 0n) {
+      lot.weight = 0n;
     }
     totalWeight += lot.weight;
   }
   if (nth !== null) {
-    nth = ((nth - 1) % totalWeight) + 1;
+    nth = ((nth - 1n) % totalWeight) + 1n;
   } else {
-    nth = utils.randInt(1, totalWeight);
+    const totalWeightNum = Number(totalWeight);
+    if (BigInt(~~totalWeightNum) !== totalWeight) {
+      return { error: "权重总和过大，JavaScript 的 number 类型无法精准容纳！" };
+    }
+    nth = BigInt(utils.randInt(1, totalWeightNum));
   }
 
   let remain = nth;
