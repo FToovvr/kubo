@@ -14,13 +14,15 @@ import {
   PluginContextForCommand,
 } from "./execute_context.ts";
 
+export type FlatComplexPiece<HasExecuted extends boolean = false> =
+  | RegularMessagePiece
+  | GroupPiece<HasExecuted>
+  | (HasExecuted extends true ? ExecutedCommandPiece
+    : UnexecutedCommandPiece);
 export interface ComplexPiecePart<HasExecuted extends boolean = false> {
   content:
-    | RegularMessagePiece
-    | CompactComplexPiece<HasExecuted>
-    | GroupPiece<HasExecuted>
-    | (HasExecuted extends true ? ExecutedCommandPiece
-      : UnexecutedCommandPiece);
+    | FlatComplexPiece<HasExecuted>
+    | CompactComplexPiece<HasExecuted>;
   gapAtRight: string;
 }
 export type UnexecutedPiece = ComplexPiecePart<false>["content"];
@@ -483,13 +485,15 @@ export class GroupPiece<HasExecuted extends boolean = false> {
   }
 
   // TODO: test
-  // FIXME: 没有处理合并 CompactComplexPiece 的情况
-  asFlat(withOuterBrackets = true): ComplexPiecePart<HasExecuted>["content"][] {
-    const flat = [];
+  asFlat(withOuterBrackets = true) {
+    const flat: FlatComplexPiece<HasExecuted>[] = [];
     if (withOuterBrackets) {
       flat.push(text("{"));
     }
     flat.push(...this.parts.flatMap((part) => {
+      if (part.content.type === "__kubo_compact_complex") {
+        return [...part.content.parts, text(part.gapAtRight)];
+      }
       return [part.content, text(part.gapAtRight)];
     }));
     if (withOuterBrackets) {
