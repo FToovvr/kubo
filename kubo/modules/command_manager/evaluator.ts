@@ -75,8 +75,8 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
 
   get executedCommands() {
     return Object.values(this.executeContext.slots)
-      .filter((slot) => slot.executed)
-      .map((slot) => slot.executed!);
+      .map((slot) => this.executeContext.getExecutionResult(slot.slotId))
+      .filter((executed) => !!executed) as ExecutedCommandPiece[];
   }
 
   get hasCommand() {
@@ -148,10 +148,15 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
     this.executeContext.pluginContext = this.pluginContext!;
 
     this.executedMessage = [];
-    const lineCommandsToExecute: {
-      lineIndex: number;
-      cmd: UnexecutedCommandPiece;
-    }[] = [];
+
+    type LineCommandWithFollowingLines = {
+      cmd: UnexecutedCommandPiece | null;
+      cmdLineIndex: number | null;
+      followingLines: ExecutedLine[];
+    };
+    const lineCommandsToExecute: LineCommandWithFollowingLines[] = [];
+    let curLineCmd: LineCommandWithFollowingLines | null = null;
+    let lineCmdCount = 0;
 
     // 先执行 embedded command
     for (const [lineIndex, unexecutedLine] of this.parsedMessage.entries()) {
@@ -160,8 +165,17 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
         unexecutedLine[0].type === "__kubo_unexecuted_command" &&
         !unexecutedLine[0].isEmbedded
       ) { // 行命令自身延后执行
+        lineCmdCount++;
         unexecutedLine[0].executeArguments(this.executeContext);
-        lineCommandsToExecute.push({ lineIndex, cmd: unexecutedLine[0] });
+
+        if (curLineCmd) {
+          lineCommandsToExecute.push(curLineCmd);
+        }
+        curLineCmd = {
+          cmd: unexecutedLine[0],
+          cmdLineIndex: lineIndex,
+          followingLines: [] as ExecutedLine[],
+        };
         this.executedMessage.push(new MessageLine());
         continue;
       }
@@ -178,18 +192,48 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
         executedLine.push(result);
       }
       this.executedMessage.push(executedLine);
+
+      if (curLineCmd) {
+        curLineCmd.followingLines.push(executedLine);
+      } else {
+        curLineCmd = {
+          cmd: null,
+          cmdLineIndex: null,
+          followingLines: [executedLine],
+        };
+      }
+    }
+
+    if (curLineCmd) {
+      lineCommandsToExecute.push(curLineCmd);
     }
 
     // 再执行 line command
-    for (const { lineIndex, cmd } of lineCommandsToExecute) {
-      if (this.executedMessage[lineIndex].length !== 0) {
+    for (
+      const [i, {
+        cmdLineIndex,
+        cmd,
+        followingLines,
+      }] of lineCommandsToExecute.entries()
+    ) {
+      if (!cmd) {
+        if (i !== 0) throw new Error("never");
+        continue;
+      }
+      if (cmdLineIndex === null) throw new Error("never");
+
+      if (this.executedMessage[cmdLineIndex].length !== 0) {
         throw new Error("never");
       }
       const executed = await cmd.execute(this.executeContext, {
-        lineNumber: lineIndex + 1,
+        lineCmdExtra: {
+          lineCmdCount,
+          lineNumber: cmdLineIndex + 1,
+          followingLines,
+        },
       });
       if (executed) {
-        this.executedMessage[lineIndex].push(executed);
+        this.executedMessage[cmdLineIndex].push(executed);
       } else {
         const result = await cmd.asLineExecuted(this.executeContext);
         for (const piece of result) {
@@ -199,7 +243,7 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
           ) {
             throw new Error("never");
           }
-          this.executedMessage[lineIndex].push(piece);
+          this.executedMessage[cmdLineIndex].push(piece);
         }
       }
     }

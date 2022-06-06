@@ -1,4 +1,9 @@
 import { KuboPlugin } from "../../../bot.ts";
+import {
+  makeBadArgumentsError,
+  makeUnknownArgumentErrorText,
+  makeUsageResponse,
+} from "../utils.ts";
 
 const usage = `
 inspect
@@ -9,15 +14,14 @@ inspect
     inspect [-array|-cq|-full-event] [-this]
 
 选项：
+    -h -help  输出帮助文本（本文本）
+
     -array      显示数组形式的消息内容（默认）
     -cq         显示 CQ 码形式的消息内容文本
     -full-event 显示整个消息事件的内容
 
     -this  检视发送的消息本身，这时不用再引用回复
            （尚未实现）
-
-    -h -help  输出帮助文本（本文本）
-
 `.trim();
 
 export default function () {
@@ -29,20 +33,21 @@ export default function () {
       bot.commands.registerCommand("inspect", {
         readableName: "检视",
         description: "检视消息内容",
+        isExclusive: true,
         callback: async (ctx, args) => {
           if (!ctx.message.isInGroupChat && !ctx.message.isInPrivateChat) {
             return { error: `${ctx.headInvoked} 目前只支持群聊及私聊。` };
           }
 
           let shouldSendUsage = false;
-          let hasError = false;
+          let errors: string[] = [];
           let toDisplay: "array" | "cq" | "full-event" | null = null;
 
-          for (const arg of args) {
+          for (const [i, arg] of args.entries()) {
             const flag = arg.flag;
             if (!flag) {
-              hasError = true;
-              break;
+              errors.push(makeUnknownArgumentErrorText(i, arg));
+              continue;
             }
             switch (flag) {
               case "h":
@@ -53,24 +58,26 @@ export default function () {
               case "array":
               case "cq":
               case "full-event": {
-                if (toDisplay) hasError = true;
+                if (toDisplay) {
+                  errors.push(`参数 -${toDisplay} 与其他参数冲突`);
+                }
                 toDisplay = flag;
                 break;
               }
               case "this": {
-                return { error: "TODO" };
+                return { error: "TODO: -this" };
               }
               default: {
-                hasError = true;
+                errors.push(`未知标志 -${flag}`);
                 break;
               }
             }
           }
 
-          if (shouldSendUsage) return usage;
-          if (hasError) {
-            return { error: `参数有误，请使用 \`${ctx.headInvoked} -help\` 来查询使用方式。` };
+          if (!args.length || shouldSendUsage) {
+            return makeUsageResponse(ctx, usage);
           }
+          if (errors.length) return makeBadArgumentsError(ctx, errors);
 
           const message = await ctx.message.getRepliedMessageEventRaw(bot);
           if (!message) return { error: "未找到消息，很可能是本 bot 本地并未存有该消息。" };

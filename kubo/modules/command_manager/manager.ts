@@ -26,7 +26,7 @@ import { Spy } from "https://deno.land/x/mock@0.15.0/mod.ts";
 export type LooseCommandEntity =
   & Optional<
     Omit<CommandEntity, "command" | "supportedStyles">,
-    // | "lineStylePriority"
+    | "isExclusive"
     | "referencePolicy"
     | "argumentsBeginningPolicy"
   >
@@ -38,9 +38,15 @@ export function completeCommandEntity(
   command: string,
   entity: LooseCommandEntity,
 ): CommandEntity {
+  const isExclusive = entity.isExclusive ?? false;
+
   let supportedStyles: Set<CommandStyle>;
   if (!entity.supportedStyles) {
-    supportedStyles = new Set(["line", "embedded"]);
+    if (isExclusive) {
+      supportedStyles = new Set(["line"]);
+    } else {
+      supportedStyles = new Set(["line", "embedded"]);
+    }
   } else if (entity.supportedStyles instanceof Set) {
     supportedStyles = entity.supportedStyles;
   } else if (typeof entity.supportedStyles === "string") {
@@ -52,7 +58,7 @@ export function completeCommandEntity(
 
   return {
     command,
-    // lineStylePriority: "low",
+    isExclusive,
     referencePolicy: "omittable",
     argumentsBeginningPolicy: "follows-spaces",
 

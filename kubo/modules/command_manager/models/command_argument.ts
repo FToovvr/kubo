@@ -133,6 +133,17 @@ export class CommandArgument implements ComplexPiecePart<true> {
     if (!option.key.startsWith("-")) return null;
     return option.key.slice(1);
   }
+
+  get evaluated(): RegularMessagePiece[] {
+    if (
+      this.content.type === "__kubo_executed_command" ||
+      this.content.type === "__kubo_group" ||
+      this.content.type === "__kubo_compact_complex"
+    ) {
+      return this.content.generateEmbeddedOutput();
+    }
+    return [this.content];
+  }
 }
 
 export class CommandArgumentOption {

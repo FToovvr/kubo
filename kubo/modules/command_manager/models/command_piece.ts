@@ -6,6 +6,7 @@ import {
   mergeAdjoiningTextPiecesInPlace,
 } from "../../../../utils/message_utils.ts";
 import { theAwaitMark } from "../constants.ts";
+import { ExecutedLine } from "../types.ts";
 import { CommandArgument } from "./command_argument.ts";
 import { CommandEntity } from "./command_entity.ts";
 import {
@@ -272,8 +273,21 @@ export class UnexecutedCommandPiece extends BaseCommandPiece<false> {
   #executedCache: ExecutedCommandPiece | null | undefined = undefined;
   async execute(
     execContext: ExecuteContextForMessage,
-    extra: { lineNumber?: number } = {},
+    extra: {
+      lineCmdExtra?: {
+        lineCmdCount: number;
+        lineNumber: number;
+        followingLines: ExecutedLine[];
+      };
+    } = {},
   ): Promise<ExecutedCommandPiece | null> {
+    if (
+      (this.isEmbedded && extra.lineCmdExtra) ||
+      (!this.isEmbedded && !extra.lineCmdExtra)
+    ) {
+      throw new Error("never");
+    }
+
     if (this.#executedCache !== undefined) return this.#executedCache;
 
     const slotId = execContext.getNextSlotId();
@@ -287,31 +301,7 @@ export class UnexecutedCommandPiece extends BaseCommandPiece<false> {
     const executedArguments = await this.executeArguments(execContext);
 
     for (const [i, candidate] of candidates.entries()) {
-      //== 检查候选命令是否支持当前所用的书写形式 ==
-      let isSupported = false;
-      let supportedStyleCount = 0;
-      if (candidate.supportedStyles.has("line")) {
-        supportedStyleCount++;
-        isSupported ||= !this.isEmbedded && this.hasPrefix;
-      }
-      if (candidate.supportedStyles.has("embedded")) {
-        supportedStyleCount++;
-        isSupported ||= this.isEmbedded && this.hasPrefix;
-      }
-      if (candidate.supportedStyles.size !== supportedStyleCount) {
-        throw new Error("never");
-      }
-      if (!isSupported) continue;
-
-      //== 检查候选命令对参数前空白的要求是否与当前相符 ==
       const isSqueezed = i > 0 || this.isSqueezed;
-      if (candidate.argumentsBeginningPolicy === "follows-spaces") {
-        if (isSqueezed) continue;
-      } else {
-        if (candidate.argumentsBeginningPolicy !== "unrestricted") {
-          throw new Error("never");
-        }
-      }
 
       //== 参数列表开头的填充 ==
       const toPrepend = fullHead.substring(candidate.command.length);
@@ -356,8 +346,9 @@ export class UnexecutedCommandPiece extends BaseCommandPiece<false> {
         candidate,
         executedArguments.map((rawArg) => new CommandArgument(rawArg)),
         {
-          ...(extra.lineNumber !== undefined
-            ? { lineNumber: extra.lineNumber }
+          isSqueezed,
+          ...(extra.lineCmdExtra !== undefined
+            ? { lineCmdExtra: extra.lineCmdExtra }
             : {}),
         },
       );
@@ -382,12 +373,17 @@ export class UnexecutedCommandPiece extends BaseCommandPiece<false> {
     execContext: ExecuteContextForMessage,
   ): Promise<ComplexPiecePart<true>[]> {
     if (this.#executedArgumentsCache !== undefined) {
+      console.log("cached");
       return this.#executedArgumentsCache;
     }
 
-    this.#executedArgumentsCache = [];
+    // 不知道是触发了 bug 还是什么其他的东西，如果直接 `#executedArgumentsCache.push`，
+    // 执行整行命令（`/c …`，有至少两个参数）会观察到：
+    // - 第一次调用本函数（用来先执行嵌套的嵌入函数）会有完整的参数；
+    // - 但第二次调用本函数（用来在正式执行整行命令时获取参数）时，数组中的元素就只剩一个了。
+    const executed = [];
     for (const part of this.arguments) {
-      this.#executedArgumentsCache.push({
+      executed.push({
         content: await executeUnexecutedNonLinePiece(
           execContext,
           part.content,
@@ -395,6 +391,7 @@ export class UnexecutedCommandPiece extends BaseCommandPiece<false> {
         gapAtRight: part.gapAtRight,
       });
     }
+    this.#executedArgumentsCache = executed;
 
     return this.#executedArgumentsCache;
   }
@@ -532,10 +529,12 @@ export class GroupPiece<HasExecuted extends boolean = false> {
     });
   }
 
-  generateEmbeddedOutput() {
+  generateEmbeddedOutput(withOuterBrackets = true) {
     // XXX: 应该限制一下只有执行后的 CompactComplexPiece 才能调用本方法，
     //      但目前办不到。
-    return generateEmbeddedOutput(this.asFlat() as ExecutedPiece[]);
+    return generateEmbeddedOutput(
+      this.asFlat(withOuterBrackets) as ExecutedPiece[],
+    );
   }
 }
 

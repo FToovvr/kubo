@@ -18,7 +18,13 @@ export interface CommandEntity {
   description: string;
 
   supportedStyles: Set<CommandStyle>;
-  // lineStylePriority: CommandPriority;
+  /**
+   * 命令是否在一条消息中独占
+   * - false 该命令可以与多条命令共存
+   * - true 该命令需要是消息中唯一的命令（无论其他命令是否也是该命令都不成）
+   * - "leading" 该命令需要时消息中唯一的命令，且出现在最开头
+   */
+  isExclusive: boolean | "leading";
   referencePolicy: ReferencePolicy;
 
   argumentsBeginningPolicy: ArgumentsBeginningPolicy;

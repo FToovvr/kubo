@@ -4,8 +4,8 @@ import { tokenizeMessage } from "./tokenizer.ts";
 
 const testPrefix = "kubo/command_manager/tokenizer" as const;
 
-// FIXME: 虽然无伤大雅，但这里 `r` 的参数起始策略是 "follows-spaces"
-//        因此魔物那一行的 /r 不会被识别上。
+// FIXME: 虽然无伤大雅，但这里 `r`、`w` 命令的参数起始策略是 "follows-spaces"
+//        因此所有的 /w 以及魔物那一行的 /r 不会被识别上。
 const context = _test_makeContext(["c", "w", "r"]);
 
 const textToParse = `你走出小镇，往王都的方向出发，遇到了…

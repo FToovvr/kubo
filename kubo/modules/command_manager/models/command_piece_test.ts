@@ -14,11 +14,7 @@ import {
 import { _test_makeContext, _test_makeFakeCommands } from "../test_utils.ts";
 import { tokenizeMessage, TokenizingEnvironment } from "../tokenizer.ts";
 import { CommandArgument } from "./command_argument.ts";
-import {
-  CommandCallback,
-  CommandCallbackReturnValue,
-  CommandEntity,
-} from "./command_entity.ts";
+import { CommandCallback, CommandEntity } from "./command_entity.ts";
 import {
   CommandExecutedResult,
   CommandNote,
@@ -593,9 +589,8 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
         }
       });
 
-      // ctx.getWholeArgumentSince(n)
       await t.step("获取从某一位置起作为整体的参数", async (t) => {
-        throw new Error("unimplemented");
+        throw new Error("TODO"); // 等 bug 修好了再测试
       });
 
       await t.step("将命令复原到原始形式", async (t) => {
@@ -1735,13 +1730,17 @@ Deno.test(`${testPrefix} 执行`, async (t) => {
       });
 
       if (style === "line") {
+        await t.step("独占命令", async (t) => {
+          throw new Error("TODO");
+        });
+
         await t.step("获取其他行的内容", async (t) => {
-          throw new Error("unimplemented");
+          throw new Error("TODO");
         });
       }
 
       await t.step("获取引用回复的内容", async (t) => {
-        throw new Error("unimplemented");
+        throw new Error("TODO");
       });
     });
   }
@@ -2107,7 +2106,13 @@ async function _test_executeCommand(
   if (cmd.isEmbedded) {
     return await cmd.execute(execContext);
   } else {
-    return await cmd.execute(execContext, { lineNumber: -1 });
+    return await cmd.execute(execContext, {
+      lineCmdExtra: {
+        lineCmdCount: 1,
+        lineNumber: -1,
+        followingLines: [],
+      },
+    });
   }
 }
 
