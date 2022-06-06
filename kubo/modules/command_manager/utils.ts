@@ -200,7 +200,7 @@ async function generateUnifiedResponseForSingleCommand(
       if (note.level !== "user-error") throw new Error("never");
       levelText = "命令错误";
     }
-    out.push(text(`⚠ ${levelText} : ${note.content}`));
+    out.push(text(`⚠ ${levelText}：\n${note.content}`));
   }
 
   mergeAdjoiningTextPiecesInPlace(out);
