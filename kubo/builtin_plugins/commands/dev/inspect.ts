@@ -66,7 +66,10 @@ function makeCallback(bot: KuboBot): CommandCallback {
       }
     }
 
-    if (!args.length || shouldSendUsage) {
+    if (
+      (!args.length && !ctx.message.replyAt && !ctx.followingLines?.length) ||
+      shouldSendUsage
+    ) {
       return makeUsageResponse(ctx, usage);
     }
     if (errors.length) return makeBadArgumentsError(ctx, errors);
