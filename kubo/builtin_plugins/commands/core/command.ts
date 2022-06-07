@@ -7,14 +7,14 @@ ${prefix}command ${prefix}cmd ${prefix}命令
 查询/管理 bot 命令。
 
 查询完整的命令列表：
-    ${prefix}command -list
+    ${prefix}command list
 `.trim();
 }
 
 function makeCallback(bot: KuboBot): CommandCallback {
   return async (ctx, args) => {
     if (!args.length) return makeNoArgumentsUsage(ctx.prefix ?? "");
-    if (args.length !== 1 || args[0].flag !== "list") {
+    if (args.length !== 1 || args[0].text !== "list") {
       return { error: "参数有误！" }; // TODO: + makeCheckUsageText(ctx)
     }
 
