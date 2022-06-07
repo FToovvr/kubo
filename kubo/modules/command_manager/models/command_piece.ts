@@ -375,7 +375,6 @@ export class UnexecutedCommandPiece extends BaseCommandPiece<false> {
     execContext: ExecuteContextForMessage,
   ): Promise<ComplexPiecePart<true>[]> {
     if (this.#executedArgumentsCache !== undefined) {
-      console.log("cached");
       return this.#executedArgumentsCache;
     }
 
