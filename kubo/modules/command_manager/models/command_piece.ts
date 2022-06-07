@@ -487,7 +487,7 @@ export class GroupPiece<HasExecuted extends boolean = false> {
   asFlat(withOuterBrackets = true) {
     const flat: FlatComplexPiece<HasExecuted>[] = [];
     if (withOuterBrackets) {
-      flat.push(text("{"));
+      flat.push(text("{" + this.blankAtLeftSide));
     }
     flat.push(...this.parts.flatMap((part) => {
       if (part.content.type === "__kubo_compact_complex") {
