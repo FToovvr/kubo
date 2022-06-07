@@ -125,39 +125,43 @@ export function tokenizeMessage(
         const curText = curPiece.data.text;
 
         // 换行符，提前把后边的也处理了
-        if (!isFromInsertedQueue) {
-          const reLf = /([^\r\n]*)(\r?\n?)/g;
-          const toInsert = [];
-          let remain!: string;
-          while (true) {
-            const match = reLf.exec(curText);
-            if (!match) throw new Error("never");
-            if (match[2].length === 0) {
-              remain = match[1];
-              break;
-            }
-            if (match[1].length > 0) {
-              // 由于带有换行符的文本不会出现在其中，因此直接 push
-              toInsert.push(text(match[1]));
-            }
-            toInsert.push({ type: "__kubo_linefeed" as const });
+        const reLf = /([^\r\n]*)(\r?\n?)/g;
+        const toInsert = [];
+        let remain!: string;
+        while (true) {
+          const match = reLf.exec(curText);
+          if (!match) throw new Error("never");
+          if (match[2].length === 0) {
+            remain = match[1];
+            break;
           }
-          if (toInsert.length > 0) {
-            if (insertedQueue.length > 0) throw new Error("never");
-            insertedQueue.push(...toInsert);
-            if (remain.length > 0) {
-              insertedQueue.push(text(remain));
-            }
-            // 如果处理过换行，那就直接下一轮
-            continue OUT;
+          if (match[1].length > 0) {
+            // 由于带有换行符的文本不会出现在其中，因此直接 push
+            toInsert.push(text(match[1]));
           }
-        } else {
-          if (/[\r\n]/.test(curText)) throw new Error("never");
+          toInsert.push({ type: "__kubo_linefeed" as const });
+        }
+        if (toInsert.length > 0) {
+          if (insertedQueue.length > 0) throw new Error("never");
+          insertedQueue.splice(
+            0,
+            0,
+            ...toInsert,
+            ...(remain.length > 0 ? [text(remain)] : []),
+          );
+          // 如果处理过换行，那就直接下一轮
+          continue OUT;
         }
       }
     }
 
-    // 从此开始，不会存在 "\n"
+    // 从此开始，非命令或整行命令里不会存在 "\n"，但嵌入命令中还可能会有
+    if (
+      (states.length === 0 || states[states.length - 1].state === "line cmd") &&
+      curPiece.type === "text"
+    ) {
+      if (/[\r\n]/.test(curPiece.data.text)) throw new Error("never");
+    }
 
     // 悬空状态下，处理疑似行命令
     if (states.length === 0) {

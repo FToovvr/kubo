@@ -1,5 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.134.0/testing/asserts.ts";
-import { at, text } from "../../../go_cqhttp_client/message_piece.ts";
+import { at, Image, text } from "../../../go_cqhttp_client/message_piece.ts";
 import {
   mergeAdjoiningTextPiecesInPlace,
   MessageLine,
@@ -1307,6 +1307,74 @@ Deno.test(`${testPrefix} 综合`, async (t) => {
       ],
     },
   ]);
+});
+
+Deno.test(`${testPrefix} 实际例子`, async (t) => {
+  await t.step("case 1", async (t) => {
+    // 来自 insertedQueue 的内容，却包含换行符
+
+    const context = _test_makeContext(["c"]);
+
+    await testTokenizeMessage(t, context, {}, [
+      {
+        in: [
+          {
+            "data": {
+              "text": "/c -- {\n",
+            },
+            "type": "text",
+          },
+          {
+            "data": {
+              "file": "xxx.image",
+              // "subType": "0",
+              // "url": "https://www.example.com",
+            },
+            "type": "image",
+          },
+          {
+            "data": {
+              "text": "\n} {\n1\n}",
+            },
+            "type": "text",
+          },
+        ],
+        out: [[
+          _test_makeUnexecutedCommandPiece(context, ["c"], {
+            gapAfterHead: " ",
+          }, [
+            {
+              content: text("--"),
+              gapAtRight: " ",
+            },
+            {
+              content: new GroupPiece({
+                blankAtLeftSide: "\n",
+                parts: [{
+                  content: {
+                    type: "image",
+                    data: { file: "xxx.image" },
+                  } as Image,
+                  gapAtRight: "\n",
+                }],
+              }),
+              gapAtRight: " ",
+            },
+            {
+              content: new GroupPiece({
+                blankAtLeftSide: "\n",
+                parts: [{
+                  content: text("1"),
+                  gapAtRight: "\n",
+                }],
+              }),
+              gapAtRight: "",
+            },
+          ]),
+        ]],
+      },
+    ]);
+  });
 });
 
 // Deno.test({
