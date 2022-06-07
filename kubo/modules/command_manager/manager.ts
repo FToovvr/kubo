@@ -54,7 +54,7 @@ export function completeCommandEntity(
   } else { // Array.isArray(entity.supportedStyles)
     supportedStyles = new Set(entity.supportedStyles);
   }
-  delete entity.supportedStyles;
+  // delete entity.supportedStyles;
 
   return {
     command,
