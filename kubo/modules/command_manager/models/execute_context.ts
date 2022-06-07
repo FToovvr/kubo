@@ -129,6 +129,8 @@ export class ExecuteContextForMessage {
     if (!error) {
       cbReturned = await (async () => {
         try {
+          // TODO: 整个执行过程中似乎纯粹是这里导致执行相关的函数需要异步？
+          //       可以考虑在实现等待型命令的时候一起实现，只不过从外部看更加透明
           return await entity.callback(context, args);
         } catch (e) {
           if (e instanceof CommandEvaluationError) {
