@@ -65,7 +65,7 @@ export default function () {
         supportedStyles: "embedded",
         argumentsBeginningPolicy: "unrestricted",
         callback,
-      }, ["w"]);
+      }, ["w", "权重"]);
     },
   };
 

@@ -220,7 +220,7 @@ export default function () {
         readableName: "选择",
         description: "从候选内容中任选其一",
         callback,
-      }, ["c"]);
+      }, ["c", "选择"]);
     },
   };
 

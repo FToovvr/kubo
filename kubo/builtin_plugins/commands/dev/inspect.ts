@@ -1,6 +1,7 @@
 import { KuboBot, KuboPlugin } from "../../../bot.ts";
 import { CommandCallback } from "../../../modules/command_manager/models/command_entity.ts";
 import {
+  _temp_registerCommandWithAliases,
   makeBadArgumentsError,
   makeUnknownArgumentErrorText,
   makeUsageResponse,
@@ -98,12 +99,12 @@ export default function () {
     id,
 
     init(bot) {
-      bot.commands.registerCommand("inspect", {
+      _temp_registerCommandWithAliases(bot.commands, "inspect", {
         readableName: "检视",
         description: "检视消息内容",
         isExclusive: true,
         callback: makeCallback(bot),
-      });
+      }, ["检视"]);
     },
   };
 

@@ -1,4 +1,5 @@
 import { KuboPlugin } from "../../../bot.ts";
+import { _temp_registerCommandWithAliases } from "../utils.ts";
 
 const todoMessage = `
 TODO: 写帮助系统
@@ -13,13 +14,13 @@ export default function () {
     id,
 
     init(bot) {
-      bot.commands.registerCommand("help", {
+      _temp_registerCommandWithAliases(bot.commands, "help", {
         readableName: "帮助",
         description: "查看帮助信息",
         callback: (ctx, args) => {
           return todoMessage;
         },
-      });
+      }, ["帮助"]);
     },
   };
 
