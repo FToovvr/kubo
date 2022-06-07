@@ -148,7 +148,7 @@ async function main() {
 
     bot.commands.registerCommand("随机单色图片", {
       readableName: "随机单色图片",
-      description: "生成随机单色图片",
+      description: "[DEBUG] 生成随机单色图片",
       callback: () => {
         const canvas = createCanvas(1, 1);
         const ctx = canvas.getContext("2d");
@@ -169,7 +169,7 @@ async function main() {
 
     bot.commands.registerCommand("echo", {
       readableName: "回响",
-      description: "将输入的参数输出",
+      description: "[DEBUG] 将输入的参数输出",
       callback: (ctx, args) => {
         let _ret = args?.map((arg) => {
           const sole = arg.sole;
@@ -203,7 +203,7 @@ async function main() {
     });
     bot.commands.registerCommand("error", {
       readableName: "错误",
-      description: "返回错误",
+      description: "[DEBUG] 返回错误",
       callback: (ctx, args) => ({ error: "error" }),
     });
   });
