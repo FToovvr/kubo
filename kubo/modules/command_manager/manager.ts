@@ -165,10 +165,7 @@ export class CommandManager {
     }
   }
 
-  listCommands(extra: {
-    // TODO
-    scope?: { group: number };
-  } = {}) {
+  listCommands(extra: { inGroup?: number /* TODO */ } = {}) {
     return [...this.commands.values()]
       .filter((entity) => !(entity instanceof CommandAliasEntity))
       .map((entity) => {
@@ -184,6 +181,35 @@ export class CommandManager {
       });
   }
 
+  /**
+   * @returns
+   * - 没找到命令则返回 undefined；
+   * - 命令没有 usage 则返回 null；
+   * - 命令有 usage 则返回 usage string。
+   */
+  async getUsage(
+    commandHead: string,
+    scope: { group?: number },
+  ): Promise<string | null | undefined> {
+    const cmd = this.commands.get(commandHead);
+    if (!cmd) return undefined;
+    if (!cmd.usageCallback) return null;
+
+    const prefix = await this.getPrefix(scope);
+    let entity: CommandEntity;
+    if (cmd instanceof CommandAliasEntity) {
+      entity = cmd.target;
+    } else {
+      entity = cmd;
+    }
+
+    return cmd.usageCallback({
+      prefix,
+      head: entity.command,
+      aliases: (this.commandToAliases.get(entity) ?? []).map((a) => a.command),
+    });
+  }
+
   private async processMessage(
     bot: KuboBot | _MockKuboBot,
     msg: string | MessagePiece[],
@@ -195,7 +221,7 @@ export class CommandManager {
       group = ev.groupId;
     }
     const scope = group ? { group } : {};
-    const prefix = await this.#bot.settings.get(scope, "prefix") as string;
+    const prefix = await this.getPrefix(scope);
 
     if (typeof msg === "string") {
       msg = [text(msg)];
@@ -245,5 +271,9 @@ export class CommandManager {
     }
 
     return processResult;
+  }
+
+  async getPrefix(scope: { group?: number }) {
+    return await this.#bot.settings.get(scope, "prefix") as string;
   }
 }

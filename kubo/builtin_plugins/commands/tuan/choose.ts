@@ -7,50 +7,64 @@ import { CommandArgument } from "../../../modules/command_manager/models/command
 import {
   CommandCallback,
   CommandCallbackReturnValue,
+  CommandUsageCallback,
 } from "../../../modules/command_manager/models/command_entity.ts";
 import { generateEmbeddedOutput } from "../../../modules/command_manager/models/command_piece.ts";
 import { ExecutedLine } from "../../../modules/command_manager/types.ts";
 import utils from "../../../utils.ts";
 import {
+  getShortestHead,
   makeBadArgumentsError,
   makeUnknownArgumentErrorText,
   makeUsageResponse,
 } from "../utils.ts";
 
-const id = "cmd_choose";
-
 // TODO: 响应 /?c 命令时，应该允许 /c3 这样头部与参数没有空白的写法。
 //       方式也许可以是允许附带特殊参数而添加重名的命令，
 //       然后让允许没有空白的命令优先级更高一些。
 // TODO: 也许在第一个候选项不是数字时，可以允许省略 "--"。
+const id = "cmd_choose";
 
-function makeUsage(prefix: string) {
-  const head = `
-${prefix}choose ${prefix}c ${prefix}选择
+function makeUsageHead(prefix: string, heads: string[]) {
+  return `
+${heads.map((head) => prefix + head).join(" ")}
 从多个候选内容中选出一个结果。根据选项，可以自选，也可以随取。
-  `.trim();
+    `.trim();
+}
+
+function makeUsageExample(prefix: string, head: string) {
+  return `
+示例：
+    > ${prefix}${head} -- 石头 剪刀 布
+    ➩ “石头” “剪刀” “布” 随机等概率选取
+
+    > ${prefix}${head} 3 -- { São Paulo } 上海 { New York }
+    ➩ “New York”（指定了序号 “3”，因此返回第三个结果 “New York”）
+    （花括号允许空白内容）
+
+    > ${prefix}${head}
+    > - 33.3%
+    > - {/w2} 66.7%
+    ➩ “- 33.3%” 或 “- « /w⇒权重=2 »66.7%”（概率分别为 1/3 与 2/3）
+    （可以在命令后方加上 \`-list\` 参数，以明确表示候选项来自列表）
+    （\`w\` 命令用于修改权重（权重默认为 1））
+`.trim();
+}
+
+const usageCallback: CommandUsageCallback = ({ prefix, head, aliases }) => {
+  const heads = [head, ...aliases];
+  const usageHead = makeUsageHead(prefix, heads);
 
   return `
+${usageHead}
+
 使用方式：
     choose [<nth>] -- <候选内容项>…
 
     choose [<nth>] [-list]
     <列表>
 
-示例：
-    > ${prefix}choose -- 苹果 鸭梨 香蕉
-    ➩ “苹果”“鸭梨”“香蕉” 之间任选一个（相同概率）
-
-    > ${prefix}choose 3 -- { São Paulo } 上海 { New York } Sydney
-    ➩ “New York”
-    （花括号允许内容中间带有空白，返回第三个结果 “New York”）
-
-    > ${prefix}choose
-    > - 33.3%
-    > - {/w2} 66.7%
-    ➩ “- 33.3%” 或 “- « /w⇒权重=2 »66.7%”（概率分别为 1/3 与 2/3）
-    （\`-list\` 标志在这里被省略）
-    （\`w\` 命令将默认为 1 的权重改为其正整数参数对应的数值，需要位于列表项的标志之后）
+${makeUsageExample(prefix, getShortestHead(heads))}
 
 选项：
     -h -help  输出帮助文本（本文本）
@@ -70,6 +84,16 @@ ${prefix}choose ${prefix}c ${prefix}选择
       每个列表项都是一个候选内容，无需额外处理其中的空白。
       只能在整行书写形式中使用，不能在嵌入书写形式中使用。
 `.trim();
+};
+
+function makeSimpleUsage(prefix: string, head: string) {
+  return `
+${makeUsageHead(prefix, [head])}
+
+${makeUsageExample(prefix, head)}
+
+完整帮助信息请使用 \`${prefix}cmd help ${head}\` 查询。
+  `.trim();
 }
 
 const callback: CommandCallback = (ctx, args) => {
@@ -123,7 +147,7 @@ const callback: CommandCallback = (ctx, args) => {
   let isByRandom = nth === null;
 
   if (shouldSendUsage) {
-    return makeUsageResponse(ctx, makeUsage(ctx.prefix ?? ""));
+    return makeUsageResponse(ctx, makeSimpleUsage(ctx.prefix ?? "", ctx.head));
   }
   if (errors.length) return makeBadArgumentsError(ctx, errors);
 
@@ -143,7 +167,10 @@ const callback: CommandCallback = (ctx, args) => {
   const listLines = ctx.getFollowing("list");
   if (listLines.length === 0) {
     if (possibleSources === "both") {
-      return makeUsageResponse(ctx, makeUsage(ctx.prefix ?? ""));
+      return makeUsageResponse(
+        ctx,
+        makeSimpleUsage(ctx.prefix ?? "", ctx.head),
+      );
     }
     if (possibleSources === "list") return { error: "命令下方不存在列表！" };
     throw new Error("never");
@@ -229,6 +256,7 @@ export default function () {
         readableName: "选择",
         description: "从候选内容中任选其一",
         callback,
+        usageCallback,
       });
       bot.commands.registerAlias(entity, ["c", "选择"]);
     },

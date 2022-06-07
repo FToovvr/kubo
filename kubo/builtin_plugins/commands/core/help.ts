@@ -1,11 +1,16 @@
 import { KuboPlugin } from "../../../bot.ts";
 
-const todoMessage = `
-TODO: 写帮助系统
-
-源代码仓库：
+function makeNoArgumentsUsage(prefix: string) {
+  return `
+Kubo 骰子框架 - 超早期开发版
 https://github.com/FToovvr/kubo
+
+查询命令帮助信息：
+    ${prefix}cmd help <命令>
+查询完整的命令列表：
+    ${prefix}cmd list
 `.trim();
+}
 
 export default function () {
   const id = "cmd_help";

@@ -1,19 +1,46 @@
 import { KuboPlugin } from "../../../bot.ts";
-import { CommandCallback } from "../../../modules/command_manager/models/command_entity.ts";
-import { makeBadArgumentsError, makeUsageResponse } from "../utils.ts";
+import {
+  CommandCallback,
+  CommandUsageCallback,
+} from "../../../modules/command_manager/models/command_entity.ts";
+import {
+  getShortestHead,
+  makeBadArgumentsError,
+  makeUsageResponse,
+} from "../utils.ts";
 
 const id = "cmd_weight";
 
-function makeUsage(prefix: string) {
-  const head = `
-${prefix}weight ${prefix}w ${prefix}权重
+function makeUsageHead(prefix: string, heads: string[]) {
+  return `
+${heads.map((head) => prefix + head).join(" ")}
 设置列表项的权重。
-  `.trim();
+    `.trim();
+}
+
+function makeUsageExample(prefix: string, head: string) {
+  return `
+示例：
+    > /c
+    > - 这一项没有设置权重，因此权重为 1，被选中的概率是 1/20
+    > - {${prefix}${head}15} 这一项的权重是 15，被选中的概率是 15/20
+    > - {${prefix}${head}1} 存在多个权重取总和，{${prefix}${head}3} 这一项的权重是 4，被选中的概率是 4/20
+    > - {${prefix}${head}0} 这一项的权重是 0，因此不会被选到
+`.trim();
+}
+
+const usageCallback: CommandUsageCallback = ({ prefix, head, aliases }) => {
+  const heads = [head, ...aliases];
+  const usageHead = makeUsageHead(prefix, heads);
 
   return `
+${usageHead}
+
 使用方式：
-    （列表项中）…{${prefix}w <n>}…
+    （列表项中）…{${prefix}${head} <n>}…
     （本命令允许头部与参数之间没有空白相隔）
+
+${makeUsageExample(prefix, getShortestHead(heads))}
 
 选项：
     <n> 权重，正整数。
@@ -25,11 +52,21 @@ ${prefix}weight ${prefix}w ${prefix}权重
     - 序号选择最多只能选到第一个权重为无限的列表项；
     - 随机选择会从权重为无限的列表项中等概率选取其一。
   `.trim();
+};
+
+function makeSimpleUsage(prefix: string, head: string) {
+  return `
+${makeUsageHead(prefix, [head])}
+
+${makeUsageExample(prefix, head)}
+
+完整帮助信息请使用 \`${prefix}cmd help ${head}\` 查询。
+  `.trim();
 }
 
 const callback: CommandCallback = (ctx, args) => {
   if (args.length === 0 || args.filter((arg) => arg.flag === "h").length) {
-    return makeUsageResponse(ctx, makeUsage(ctx.prefix ?? ""));
+    return makeUsageResponse(ctx, makeSimpleUsage(ctx.prefix ?? "", ctx.head));
   }
 
   let error: string | null = null;
@@ -65,6 +102,7 @@ export default function () {
         supportedStyles: "embedded",
         argumentsBeginningPolicy: "unrestricted",
         callback,
+        usageCallback,
       });
       bot.commands.registerAlias(entity, ["w", "权重"]);
     },

@@ -8,6 +8,10 @@ export type CommandCallback = (
   args: CommandArgument[],
 ) => CommandCallbackReturnValue | Promise<CommandCallbackReturnValue>;
 
+export type CommandUsageCallback = (
+  ctx: { prefix: string; head: string; aliases: string[] },
+) => string;
+
 /**
  * 存储注册命令数据所用的数据结构。
  */
@@ -32,6 +36,9 @@ export interface CommandEntity {
   // TODO!: 是否允许合并、延时控制、分段等，应该由如本处的返回值控制
   // TODO!!: reply 由 ctx 处理，而非返回？
   callback: CommandCallback;
+
+  // `| undefined` 防止 CommandAliasEntity 对应的 getter 报错
+  usageCallback?: CommandUsageCallback | undefined;
 }
 
 export class CommandAliasEntity implements CommandEntity {
@@ -64,6 +71,10 @@ export class CommandAliasEntity implements CommandEntity {
 
   get callback() {
     return this.target.callback;
+  }
+
+  get usageCallback() {
+    return this.target.usageCallback;
   }
 }
 

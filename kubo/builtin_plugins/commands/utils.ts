@@ -1,7 +1,3 @@
-import {
-  CommandManager,
-  LooseCommandEntity,
-} from "../../modules/command_manager/manager.ts";
 import { CommandArgument } from "../../modules/command_manager/models/command_argument.ts";
 import { CommandCallbackReturnValue } from "../../modules/command_manager/models/command_entity.ts";
 import { PluginContextForCommand } from "../../modules/command_manager/models/execute_context.ts";
@@ -18,7 +14,7 @@ export function makeUnknownArgumentErrorText(i: number, arg: CommandArgument) {
 
 // TODO: usage 是不是应该由系统处理？
 export function makeUsageResponse(
-  ctx: PluginContextForCommand,
+  ctx: PluginContextForCommand, // TODO: 这里用 ctx 不严谨，应该草 bot 那里获得 prefix
   usage: string,
 ): CommandCallbackReturnValue {
   if (ctx.isEmbedded) {
@@ -27,8 +23,16 @@ export function makeUsageResponse(
   return usage;
 }
 
-export function makeCheckUsageText(ctx: PluginContextForCommand) {
-  return `请使用行命令 \`${ctx.headInvoked} -help\` 来查询使用方式。`;
+export function makeCheckUsageText(
+  ctx: PluginContextForCommand, // TODO: 这里用 ctx 不严谨，应该草 bot 那里获得 prefix
+  hasSimpleUsage = true,
+) {
+  let text = `请使用整行命令 \`${ctx.prefix}cmd help ${ctx.head}\` 查询命令完整的帮助信息`;
+  if (hasSimpleUsage) {
+    text += `，或以整行命令 \`${ctx.headInvoked} -help\` 查询其简版使用方式`;
+  }
+  text += "。";
+  return text;
 }
 
 export function makeBadArgumentsError(
@@ -39,4 +43,9 @@ export function makeBadArgumentsError(
   return {
     error: "参数有误，" + errors[0] + "！" + makeCheckUsageText(ctx),
   };
+}
+
+export function getShortestHead(heads: string[]) {
+  heads = heads.sort((h1, h2) => h1.length - h2.length);
+  return heads[0];
 }
