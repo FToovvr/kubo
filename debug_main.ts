@@ -148,7 +148,7 @@ async function main() {
 
     bot.commands.registerCommand("随机单色图片", {
       readableName: "随机单色图片",
-      description: "生产随机单色图片",
+      description: "生成随机单色图片",
       callback: () => {
         const canvas = createCanvas(1, 1);
         const ctx = canvas.getContext("2d");
