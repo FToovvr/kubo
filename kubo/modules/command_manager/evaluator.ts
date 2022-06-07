@@ -166,7 +166,7 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
         !unexecutedLine[0].isEmbedded
       ) { // 行命令自身延后执行
         lineCmdCount++;
-        unexecutedLine[0].executeArguments(this.executeContext);
+        await unexecutedLine[0].executeArguments(this.executeContext);
 
         if (curLineCmd) {
           lineCommandsToExecute.push(curLineCmd);
