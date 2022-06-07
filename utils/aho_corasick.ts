@@ -54,6 +54,15 @@ export class Trie<T = void> {
     return cur.value;
   }
 
+  *values(cur: TrieVertex<T> = this.root): Iterable<T> {
+    if (cur.isLeaf) {
+      yield cur.value!;
+    }
+    for (const next of Object.values(cur.next)) {
+      yield* this.values(next);
+    }
+  }
+
   /**
    * 返回有哪些前缀匹配的单词，以及与之相关联的值
    * 保证返回的次序是由短至长

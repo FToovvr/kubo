@@ -165,6 +165,25 @@ export class CommandManager {
     }
   }
 
+  listCommands(extra: {
+    // TODO
+    scope?: { group: number };
+  } = {}) {
+    return [...this.commands.values()]
+      .filter((entity) => !(entity instanceof CommandAliasEntity))
+      .map((entity) => {
+        const aliases = this.commandToAliases.get(entity) ?? [];
+        return {
+          entity,
+          aliases: aliases,
+          status: {
+            global: "enabled",
+            here: "inherited",
+          },
+        };
+      });
+  }
+
   private async processMessage(
     bot: KuboBot | _MockKuboBot,
     msg: string | MessagePiece[],
