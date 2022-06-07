@@ -40,15 +40,3 @@ export function makeBadArgumentsError(
     error: "参数有误，" + errors[0] + "！" + makeCheckUsageText(ctx),
   };
 }
-
-// TODO: 正式的别名方案
-export function _temp_registerCommandWithAliases(
-  commandManager: CommandManager,
-  head: string,
-  entity: LooseCommandEntity,
-  aliases: string[],
-) {
-  for (const curHead of [head, ...aliases]) {
-    commandManager.registerCommand(curHead, entity);
-  }
-}

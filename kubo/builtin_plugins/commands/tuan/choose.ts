@@ -12,7 +12,6 @@ import { generateEmbeddedOutput } from "../../../modules/command_manager/models/
 import { ExecutedLine } from "../../../modules/command_manager/types.ts";
 import utils from "../../../utils.ts";
 import {
-  _temp_registerCommandWithAliases,
   makeBadArgumentsError,
   makeUnknownArgumentErrorText,
   makeUsageResponse,
@@ -226,11 +225,12 @@ export default function () {
     id,
 
     init(bot) {
-      _temp_registerCommandWithAliases(bot.commands, "choose", {
+      const entity = bot.commands.registerCommand("choose", {
         readableName: "选择",
         description: "从候选内容中任选其一",
         callback,
-      }, ["c", "选择"]);
+      });
+      bot.commands.registerAlias(entity, ["c", "选择"]);
     },
   };
 

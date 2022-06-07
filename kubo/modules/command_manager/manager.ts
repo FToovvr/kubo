@@ -13,7 +13,11 @@ import {
   MessageEvent,
   MessageOfGroupEvent,
 } from "../../../go_cqhttp_client/events.ts";
-import { CommandEntity, CommandStyle } from "./models/command_entity.ts";
+import {
+  CommandAliasEntity,
+  CommandEntity,
+  CommandStyle,
+} from "./models/command_entity.ts";
 import { evaluateMessage } from "./evaluator.ts";
 import { generateUnifiedResponse } from "./utils.ts";
 import { mergeAdjoiningTextPiecesInPlace } from "../../../utils/message_utils.ts";
@@ -97,6 +101,7 @@ export class CommandManager {
   prefix!: string;
 
   readonly commands: CommandTrie = new Trie<CommandEntity>();
+  readonly commandToAliases = new Map<CommandEntity, CommandAliasEntity[]>();
 
   constructor(bot: KuboBot | _MockKuboBot) {
     this.#bot = bot;
@@ -112,16 +117,52 @@ export class CommandManager {
     this.#bot.onMessage("all", { all: true }, this.processMessage.bind(this));
   }
 
-  registerCommand(command: string, looseEntity: LooseCommandEntity) {
+  registerCommand(
+    command: string,
+    looseEntity: LooseCommandEntity,
+    extra: {
+      aliases?: string | string[];
+    } = {},
+  ) {
+    this.checkCommandHead(command, looseEntity);
+
+    const entity = completeCommandEntity(command, looseEntity);
+    this.commands.set(command, entity);
+
+    if (extra.aliases !== undefined) {
+      this.registerAlias(entity, extra.aliases);
+    }
+
+    return entity;
+  }
+
+  registerAlias(target: CommandEntity, aliases: string | string[]) {
+    if (typeof aliases === "string") {
+      aliases = [aliases];
+    }
+
+    const aliasEntities = [];
+    for (const alias of aliases) {
+      this.checkCommandHead(alias);
+      const aliasEntity = new CommandAliasEntity(target, alias);
+      this.commands.set(alias, aliasEntity);
+      aliasEntities.push(aliasEntity);
+    }
+    this.commandToAliases.set(target, [
+      ...this.commandToAliases.get(target) ?? [],
+      ...aliasEntities,
+    ]);
+  }
+
+  checkCommandHead(command: string, looseEntity?: LooseCommandEntity) {
     if (this.commands.get(command)) {
-      throw new Error(`命令重复！命令：${{ command, entity: looseEntity }}`);
+      throw new Error(
+        `命令重复！命令：${{ command, ...(looseEntity ? { looseEntity } : {}) }}`,
+      );
     }
     if (/[\s{}\\]/.test(command)) {
       throw new Error(`命令不能含有空白字符、花括号或反斜杠！`);
     }
-
-    const entity = completeCommandEntity(command, looseEntity);
-    this.commands.set(command, entity);
   }
 
   private async processMessage(

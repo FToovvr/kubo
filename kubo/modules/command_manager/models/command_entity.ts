@@ -34,6 +34,39 @@ export interface CommandEntity {
   callback: CommandCallback;
 }
 
+export class CommandAliasEntity implements CommandEntity {
+  constructor(
+    public target: CommandEntity,
+    public command: string,
+  ) {
+  }
+
+  get readableName() {
+    return this.target.readableName;
+  }
+  get description() {
+    return this.target.description;
+  }
+
+  get supportedStyles() {
+    return this.target.supportedStyles;
+  }
+  get isExclusive() {
+    return this.target.isExclusive;
+  }
+  get referencePolicy() {
+    return this.target.referencePolicy;
+  }
+
+  get argumentsBeginningPolicy() {
+    return this.target.argumentsBeginningPolicy;
+  }
+
+  get callback() {
+    return this.target.callback;
+  }
+}
+
 // TODO: 是不是该允许单独的 RegularMessagePiece？
 export type CommandCallbackReturnValue =
   | {

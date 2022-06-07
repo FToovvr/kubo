@@ -1,10 +1,6 @@
 import { KuboPlugin } from "../../../bot.ts";
 import { CommandCallback } from "../../../modules/command_manager/models/command_entity.ts";
-import {
-  _temp_registerCommandWithAliases,
-  makeBadArgumentsError,
-  makeUsageResponse,
-} from "../utils.ts";
+import { makeBadArgumentsError, makeUsageResponse } from "../utils.ts";
 
 const id = "cmd_weight";
 
@@ -63,13 +59,14 @@ export default function () {
     id,
 
     init(bot) {
-      _temp_registerCommandWithAliases(bot.commands, "weight", {
+      const entity = bot.commands.registerCommand("weight", {
         readableName: "权重",
         description: "设置列表项权重",
         supportedStyles: "embedded",
         argumentsBeginningPolicy: "unrestricted",
         callback,
-      }, ["w", "权重"]);
+      });
+      bot.commands.registerAlias(entity, ["w", "权重"]);
     },
   };
 
