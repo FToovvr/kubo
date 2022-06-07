@@ -618,7 +618,7 @@ export class ExecutedCommandPiece extends BaseCommandPiece<true> {
   asFlat(): ComplexPiecePart<true>["content"][] {
     if (this.isEmbedded) throw new Error("never");
     const flat = [
-      text(this.command.command + this.gapAfterHead),
+      text(this.prefix + "\u033D" + this.command.command + this.gapAfterHead),
       ...this.arguments.flatMap((part) => {
         return [part.content, text(part.gapAtRight)];
       }),
