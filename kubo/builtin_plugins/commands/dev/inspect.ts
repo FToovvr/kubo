@@ -7,13 +7,18 @@ import {
   makeUsageResponse,
 } from "../utils.ts";
 
-const usage = `
-inspect
+function makeUsage(prefix: string) {
+  const head = `
+${prefix}inspect ${prefix}检视
 检视消息的数据内容，以方便 debug。
+  `.trim();
+
+  return `
+${head}
 
 使用方式：
     <引用一条回复>
-    inspect [-array|-cq|-full-event] [-this]
+    ${prefix}inspect [-array|-cq|-full-event] [-this]
 
 选项：
     -h -help  输出帮助文本（本文本）
@@ -23,8 +28,9 @@ inspect
     -full-event 显示整个消息事件的内容
 
     -this  检视发送的消息本身，这时不用再引用回复
-           （尚未实现）
-`.trim();
+            （尚未实现）
+  `.trim();
+}
 
 function makeCallback(bot: KuboBot): CommandCallback {
   return async (ctx, args) => {
@@ -71,7 +77,7 @@ function makeCallback(bot: KuboBot): CommandCallback {
       (!args.length && !ctx.message.replyAt && !ctx.followingLines?.length) ||
       shouldSendUsage
     ) {
-      return makeUsageResponse(ctx, usage);
+      return makeUsageResponse(ctx, makeUsage(ctx.prefix ?? ""));
     }
     if (errors.length) return makeBadArgumentsError(ctx, errors);
 

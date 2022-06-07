@@ -8,12 +8,15 @@ import {
 
 const id = "cmd_weight";
 
-const usage = `
-weight w
+function makeUsage(prefix: string) {
+  const head = `
+${prefix}weight ${prefix}w ${prefix}权重
 设置列表项的权重。
+  `.trim();
 
+  return `
 使用方式：
-    （列表项中）…{/w <n>}…
+    （列表项中）…{${prefix}w <n>}…
     （本命令允许头部与参数之间没有空白相隔）
 
 选项：
@@ -25,11 +28,12 @@ weight w
     若列表中存在权重为无限的列表项：
     - 序号选择最多只能选到第一个权重为无限的列表项；
     - 随机选择会从权重为无限的列表项中等概率选取其一。
-`.trim();
+  `.trim();
+}
 
 const callback: CommandCallback = (ctx, args) => {
   if (args.length === 0 || args.filter((arg) => arg.flag === "h").length) {
-    return makeUsageResponse(ctx, usage);
+    return makeUsageResponse(ctx, makeUsage(ctx.prefix ?? ""));
   }
 
   let error: string | null = null;
