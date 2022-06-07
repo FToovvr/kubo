@@ -41,8 +41,8 @@ const callback: CommandCallback = (ctx, args) => {
     num = args[0].bigint;
     if (num === null) {
       error = "请提供整数参数";
-    } else if (num < 1) {
-      error = "请提供正数参数";
+    } else if (num < 0n) {
+      error = "请提供非负数参数";
     }
   }
   if (error) return makeBadArgumentsError(ctx, [error]);

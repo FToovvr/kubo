@@ -140,29 +140,33 @@ const callback: CommandCallback = (ctx, args) => {
     throw new Error("never");
   }
 
-  type ListLot = { line: ExecutedLine; weight: bigint };
+  type ListLot = { line: ExecutedLine; weight: bigint | null };
   const listLots: ListLot[] = [];
 
   for (const line of listLines) {
-    listLots.push({ line, weight: 0n });
+    listLots.push({ line, weight: null });
     for (const piece of line) {
       if (piece.type !== "__kubo_executed_command") continue;
       const value = piece.result?.embeddingRaw?.value ?? {};
       if (!("listItemWeight" in value)) continue;
       const weight = value.listItemWeight;
-      if (typeof value !== "bigint") continue;
-      listLots[listLots.length - 1].weight += weight;
+      if (typeof weight !== "bigint") continue;
+      const oldWeight = listLots[listLots.length - 1].weight;
+      listLots[listLots.length - 1].weight = (oldWeight ?? 0n) + weight;
     }
   }
 
   let totalWeight = 0n;
   for (const lot of listLots) {
-    if (lot.weight === 0n) {
+    if (lot.weight === null) {
       lot.weight = 1n;
     } else if (lot.weight < 0n) {
       lot.weight = 0n;
     }
     totalWeight += lot.weight;
+  }
+  if (totalWeight === 0n) {
+    return { error: "总权重不能为 0！" };
   }
   if (nth !== null) {
     nth = ((nth - 1n) % totalWeight) + 1n;
@@ -176,8 +180,8 @@ const callback: CommandCallback = (ctx, args) => {
 
   let remain = nth;
   for (const lot of listLots) {
-    if (remain > lot.weight) {
-      remain -= lot.weight;
+    if (remain > lot.weight!) {
+      remain -= lot.weight!;
       continue;
     }
     const chosen = lot.line;
