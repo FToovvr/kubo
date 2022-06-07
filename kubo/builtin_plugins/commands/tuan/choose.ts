@@ -159,7 +159,13 @@ const callback: CommandCallback = (ctx, args) => {
     } else {
       chosen = argLots[utils.randInt(0, argLots.length - 1)];
     }
-    return makeResponse(ctx.isEmbedded, chosen.evaluated, isByRandom);
+    let out: RegularMessagePiece[];
+    if (chosen.content.type === "__kubo_group") {
+      out = generateEmbeddedOutput(chosen.content.asFlat(false));
+    } else {
+      out = chosen.evaluated;
+    }
+    return makeResponse(ctx.isEmbedded, out, isByRandom);
   }
 
   // 从这里开始处理列表
