@@ -16,7 +16,10 @@ import {
   GroupPiece,
   UnexecutedCommandPiece,
 } from "./command_piece.ts";
-import { MessageEvent } from "../../../../go_cqhttp_client/events.ts";
+import {
+  MessageEvent,
+  MessageOfGroupEvent,
+} from "../../../../go_cqhttp_client/events.ts";
 import { KuboBot } from "../../../bot.ts";
 import { ExecutedLine } from "../types.ts";
 
@@ -281,7 +284,7 @@ export class PluginContextForMessage {
   }
   get groupId() {
     if (!this.isInGroupChat) return undefined;
-    return (this.event as any).group_id as number;
+    return (this.event as MessageOfGroupEvent).groupId;
   }
   get isInPrivateChat() {
     return this.event.messageType === "private";
