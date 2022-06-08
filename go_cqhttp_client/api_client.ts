@@ -37,6 +37,8 @@ export class APIClient {
       [] as ((resp: SendMessageResponse, targetId: number) => void)[],
   };
 
+  //==== info ====//
+
   async getLoginInfo() {
     const data = (await this.fetch("/get_login_info")).data;
     return {
@@ -44,6 +46,8 @@ export class APIClient {
       nickname: data.nickname,
     };
   }
+
+  //==== message ====//
 
   async sendGroupMessage(
     toGroup: number,
@@ -87,14 +91,16 @@ export class APIClient {
     return resp;
   }
 
+  async getMessage(messageId: number) {
+    return await this.fetch("/get_msg", { message_id: messageId });
+  }
+
+  //==== request ====//
+
   async handleFriendRequest(flag: string, action: "approve" | "deny") {
     return await this.fetch("/set_friend_add_request", {
       flag,
       approve: action === "approve",
     });
-  }
-
-  async getMessage(messageId: number) {
-    return await this.fetch("/get_msg", { message_id: messageId });
   }
 }
