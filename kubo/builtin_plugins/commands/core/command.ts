@@ -104,7 +104,7 @@ export default function () {
     init(bot) {
       const entity = bot.commands.registerCommand("command", {
         readableName: "命令",
-        description: "获取名信息",
+        description: "查询/管理命令",
         // supportedStyles: "line",
         isExclusive: true,
         callback: makeCallback(bot),
