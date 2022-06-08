@@ -1,4 +1,7 @@
-import { SendMessageResponse } from "./api_response.ts";
+import {
+  GetGroupMemberInfoResponse,
+  SendMessageResponse,
+} from "./api_response.ts";
 import { MessagePiece } from "./message_piece.ts";
 
 export class APIClient {
@@ -45,6 +48,20 @@ export class APIClient {
       qq: Number(data.user_id),
       nickname: data.nickname,
     };
+  }
+
+  async getGroupMemberInfo(
+    group: number,
+    qq: number,
+    extra: { prefersCache: boolean } = { prefersCache: true },
+  ) {
+    const resp = (await this.fetch("/get_group_member_info", {
+      group_id: group,
+      user_id: qq,
+      ...(extra.prefersCache ? {} : { no_cache: true }),
+    })) as GetGroupMemberInfoResponse;
+
+    return resp.data;
   }
 
   //==== message ====//

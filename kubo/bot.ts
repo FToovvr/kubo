@@ -10,6 +10,7 @@ import {
 import { MessagePiece, Text } from "../go_cqhttp_client/message_piece.ts";
 import { CommandManager } from "./modules/command_manager/index.ts";
 import { MessageManager } from "./modules/message_manager/message_manager.ts";
+import { RolesManager } from "./modules/roles_manager/roles_manager.ts";
 import { SettingsManager } from "./modules/settings_manager/index.ts";
 
 import { PluginStoreWrapper, Store, StoreWrapper } from "./storage.ts";
@@ -113,6 +114,7 @@ export class KuboBot {
   settings!: SettingsManager;
   messages!: MessageManager;
   commands!: CommandManager;
+  roles!: RolesManager;
 
   utils = utils;
 
@@ -162,6 +164,8 @@ export class KuboBot {
       // 需要 initOnMessage
       this.commands = new CommandManager(this);
       await this.commands.init();
+
+      this.roles = new RolesManager(this);
     }
 
     for (const cb of this.#initCallbacks) {
