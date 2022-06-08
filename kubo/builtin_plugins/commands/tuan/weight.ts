@@ -5,6 +5,7 @@ import {
 } from "../../../modules/command_manager/models/command_entity.ts";
 import {
   getShortestHead,
+  hasHelpFlag,
   makeBadArgumentsError,
   makeUsageResponse,
 } from "../utils.ts";
@@ -21,7 +22,7 @@ ${heads.map((head) => prefix + head).join(" ")}
 function makeUsageExample(prefix: string, head: string) {
   return `
 示例：
-    > /c
+    > ${prefix}c
     > - 这一项没有设置权重，因此权重为 1，被选中的概率是 1/20
     > - {${prefix}${head}15} 这一项的权重是 15，被选中的概率是 15/20
     > - {${prefix}${head}1} 存在多个权重取总和，{${prefix}${head}3} 这一项的权重是 4，被选中的概率是 4/20
@@ -65,7 +66,7 @@ ${makeUsageExample(prefix, head)}
 }
 
 const callback: CommandCallback = (ctx, args) => {
-  if (args.length === 0 || args.filter((arg) => arg.flag === "h").length) {
+  if (args.length === 0 || hasHelpFlag(args)) {
     return makeUsageResponse(ctx, makeSimpleUsage(ctx.prefix ?? "", ctx.head));
   }
 

@@ -49,3 +49,10 @@ export function getShortestHead(heads: string[]) {
   heads = heads.sort((h1, h2) => h1.length - h2.length);
   return heads[0];
 }
+
+export function hasHelpFlag(args: CommandArgument[]) {
+  return args.filter((arg) => {
+    const flag = arg.flag;
+    return flag === "h" || flag === "help";
+  }).length > 0;
+}
