@@ -132,7 +132,7 @@ export class KuboBot {
     });
   }
 
-  private checkBotIsRunning() {
+  private isBotRunningOrDie() {
     if (!this.isRunning) throw new BotNotRunningError();
   }
 
@@ -181,7 +181,7 @@ export class KuboBot {
   }
 
   getPluginStore(plugin: KuboPlugin) {
-    this.checkBotIsRunning();
+    this.isBotRunningOrDie();
 
     return new PluginStoreWrapper(this._store, plugin);
   }
@@ -435,7 +435,7 @@ export class KuboBot {
     toGroup: number,
     message: string | MessagePiece[],
   ) {
-    this.checkBotIsRunning();
+    this.isBotRunningOrDie();
 
     for (const hook of this.hooks.beforeSendMessage) {
       const _msg = hook(this, message) ?? message;
@@ -451,7 +451,7 @@ export class KuboBot {
     toQQ: number,
     message: string | MessagePiece[],
   ) {
-    this.checkBotIsRunning();
+    this.isBotRunningOrDie();
 
     for (const hook of this.hooks.beforeSendMessage) {
       const _msg = hook(this, message) ?? message;
@@ -464,7 +464,7 @@ export class KuboBot {
   }
 
   async handleFriendRequest(flag: string, action: "approve" | "deny") {
-    this.checkBotIsRunning();
+    this.isBotRunningOrDie();
 
     return await this._client.handleFriendRequest(flag, action);
   }
