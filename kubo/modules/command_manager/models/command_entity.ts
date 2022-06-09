@@ -30,6 +30,7 @@ export interface CommandEntity {
    */
   isExclusive: boolean | "leading";
   referencePolicy: ReferencePolicy;
+  canRunEvenWhenBotOff: boolean;
 
   argumentsBeginningPolicy: ArgumentsBeginningPolicy;
 
@@ -63,6 +64,9 @@ export class CommandAliasEntity implements CommandEntity {
   }
   get referencePolicy() {
     return this.target.referencePolicy;
+  }
+  get canRunEvenWhenBotOff() {
+    return this.target.canRunEvenWhenBotOff;
   }
 
   get argumentsBeginningPolicy() {

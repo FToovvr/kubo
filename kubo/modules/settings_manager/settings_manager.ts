@@ -154,15 +154,17 @@ export class SettingsManager {
   async tryGet(
     scope: { group?: number },
     keyPath: string[] | string,
+    args: { autoFallback: boolean } = { autoFallback: false },
   ): Promise<AllowedValue | undefined> {
     const { node: regInfo } = await this.tryGetRegisteredNode(keyPath);
     if (!regInfo) { // 对应路径没有注册的值配置节点
       return undefined;
     }
 
+    // TODO: 调整代码，增强可读性
     const scopes = [
       ...(scope.group ? [scope] : []),
-      {},
+      ...(!scope.group || args.autoFallback ? [{}] : []),
     ];
 
     if (!Array.isArray(keyPath)) {
@@ -221,8 +223,9 @@ export class SettingsManager {
   async get(
     scope: { group?: number },
     keyPath: string[] | string,
+    args: { autoFallback: boolean } = { autoFallback: false },
   ): Promise<AllowedValue> {
-    const result = await this.tryGet(scope, keyPath);
+    const result = await this.tryGet(scope, keyPath, args);
     if (result === undefined) {
       throw new Error(`设置路径并未被注册为值节点！路径：${keyPath}`);
     }
@@ -270,10 +273,13 @@ export class SettingsManager {
    * 假设配置节点已注册
    */
   async set(
-    scope: { group?: number },
+    scope: "global" | { group?: number },
     keyPath: string[] | string,
     value: AllowedValue,
   ): Promise<true> {
+    if (scope === "global") {
+      scope = {};
+    }
     const result = await this.trySet(scope, keyPath, value);
     if (result === undefined) {
       throw new Error(`设置路径并未被注册为值节点！路径：${keyPath}`);

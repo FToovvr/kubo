@@ -55,6 +55,12 @@ export async function evaluateMessage<Bot extends BaseBot = KuboBot>(
   return { processResult, embeddingResult, responses };
 }
 
+type LineCommandWithFollowingLines = {
+  cmd: UnexecutedCommandPiece | null;
+  cmdLineIndex: number | null;
+  followingLines: ExecutedLine[];
+};
+
 /**
  * 执行消息中的命令。
  *
@@ -147,18 +153,24 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
     if (this.executedMessage) throw new Error("never");
 
     // TODO: 更优雅一些
-    this.executeContext.pluginContext = this.pluginContext!;
+    if (!this.pluginContext) throw new Error("never");
+    this.executeContext.pluginContext = this.pluginContext;
 
     this.executedMessage = [];
 
-    type LineCommandWithFollowingLines = {
-      cmd: UnexecutedCommandPiece | null;
-      cmdLineIndex: number | null;
-      followingLines: ExecutedLine[];
-    };
+    const isBotOff = await (async (pluginContext) => {
+      const scope = pluginContext.isInGroupChat
+        ? { group: pluginContext.groupId! }
+        : "global";
+      return (await this.pluginContext!.bot.getActivityStatus(scope))
+        .calculated === "disabled";
+    })(this.pluginContext);
+    if (isBotOff) {
+      return await this.executeCommandsThatCanRunWhenBotIsOff();
+    }
+
     const lineCommandsToExecute: LineCommandWithFollowingLines[] = [];
     let curLineCmd: LineCommandWithFollowingLines | null = null;
-    let lineCmdCount = 0;
 
     // 先执行 embedded command
     for (const [lineIndex, unexecutedLine] of this.parsedMessage.entries()) {
@@ -167,7 +179,6 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
         unexecutedLine[0].type === "__kubo_unexecuted_command" &&
         !unexecutedLine[0].isEmbedded
       ) { // 行命令自身延后执行
-        lineCmdCount++;
         await unexecutedLine[0].executeArguments(this.executeContext);
 
         if (curLineCmd) {
@@ -211,6 +222,72 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
     }
 
     // 再执行 line command
+    await this.executeLineCommands(lineCommandsToExecute);
+
+    if (!this.hasCommand) return "skip";
+
+    return "pass";
+  }
+
+  /**
+   * 可以在 bot off 时执行的命令必须是整行命令，
+   * 且不能允许在其头部与参数列表之间不带空白。
+   * 此外，其参数列表不能含有复杂的参数
+   */
+  private async executeCommandsThatCanRunWhenBotIsOff(): Promise<
+    "skip" | "pass"
+  > {
+    if (!this.executedMessage) throw new Error("never");
+
+    const qualifiedCommands: {
+      cmd: UnexecutedCommandPiece;
+      cmdLineIndex: number;
+      followingLines: [];
+    }[] = [];
+
+    OUT:
+    for (const [i, line] of this.parsedMessage!.entries()) {
+      this.executedMessage.push(new MessageLine());
+      if (line.length === 1 && line[0].type === "__kubo_unexecuted_command") {
+        const cmd = line[0];
+        const possibleCommands = cmd.possibleCommands;
+        const longest = possibleCommands[possibleCommands.length - 1];
+        if (longest.canRunEvenWhenBotOff) {
+          for (const arg of cmd.arguments) {
+            if (
+              arg.content.type === "__kubo_compact_complex" ||
+              arg.content.type === "__kubo_group" ||
+              arg.content.type === "__kubo_unexecuted_command"
+            ) {
+              continue OUT;
+            }
+          }
+
+          const newCmd = cmd.clone();
+          newCmd.possibleCommands = [longest];
+          qualifiedCommands.push({
+            cmd: newCmd,
+            cmdLineIndex: i,
+            followingLines: [],
+          });
+        }
+      }
+    }
+
+    if (!qualifiedCommands.length) return "skip";
+
+    await this.executeLineCommands(qualifiedCommands);
+
+    if (!this.hasCommand) return "skip";
+
+    return "pass";
+  }
+
+  private async executeLineCommands(
+    lineCommandsToExecute: LineCommandWithFollowingLines[],
+  ) {
+    if (!this.executedMessage) throw new Error("never");
+
     for (
       const [i, {
         cmdLineIndex,
@@ -229,7 +306,7 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
       }
       const executed = await cmd.execute(this.executeContext, {
         lineCmdExtra: {
-          lineCmdCount,
+          lineCmdCount: lineCommandsToExecute.length,
           lineNumber: cmdLineIndex + 1,
           followingLines,
         },
@@ -249,9 +326,5 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
         }
       }
     }
-
-    if (!this.hasCommand) return "skip";
-
-    return "pass";
   }
 }

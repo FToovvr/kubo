@@ -164,7 +164,7 @@ export class UnexecutedCommandPiece extends BaseCommandPiece<false> {
 
   constructor(
     args:
-      & {
+      | {
         possibleCommands: CommandEntity[];
 
         isAwait: boolean;
@@ -172,16 +172,29 @@ export class UnexecutedCommandPiece extends BaseCommandPiece<false> {
         rawArguments: ComplexPiecePart[];
         gapAfterHead: string;
       }
-      & ({
-        type: "embedded";
-        blankAtLeftSide: string;
-        prefix: string;
-      } | {
-        type: "line";
-        prefix: string | null;
-      }),
+        & ({
+          type: "embedded";
+          blankAtLeftSide: string;
+          prefix: string;
+        } | {
+          type: "line";
+          prefix: string | null;
+        })
+      | UnexecutedCommandPiece,
   ) {
     super();
+
+    if (args instanceof UnexecutedCommandPiece) {
+      // XXX: possibleCommands 和 arguments 只克隆了一层，但应该足够了
+      this.possibleCommands = [...args.possibleCommands];
+      this.isEmbedded = args.isEmbedded;
+      this.blankAtLeftSide = args.blankAtLeftSide;
+      this.prefix = args.prefix;
+      this.isAwait = args.isAwait;
+      this.arguments = [...args.arguments];
+      this.gapAfterHead = args.gapAfterHead;
+      return;
+    }
 
     this.possibleCommands = args.possibleCommands;
     this.isAwait = args.isAwait;
@@ -197,6 +210,11 @@ export class UnexecutedCommandPiece extends BaseCommandPiece<false> {
     }
     this.prefix = args.prefix;
     if (this.prefix === "") throw new Error("never");
+  }
+
+  clone(withCache = false) {
+    if (withCache) throw new Error("unimplemented");
+    return new UnexecutedCommandPiece(this);
   }
 
   get isSqueezed() {

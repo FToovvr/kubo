@@ -92,3 +92,6 @@ export function extractMessageFilter(
 
   return result;
 }
+
+export type ActivityStatus = "enabled" | "disabled";
+export type ActivityStatusWithDefault = ActivityStatus | "default";

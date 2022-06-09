@@ -130,7 +130,7 @@ export class Store implements IStore {
     })();
 
     await this.db.queryArray`
-      INSERT OR REPLACE INTO store ("namespace", "group", "qq", "key", "value", "expire_timestamp")
+      INSERT INTO store ("namespace", "group", "qq", "key", "value", "expire_timestamp")
         values (
           ${ctx.namespace},
           ${ctx.group ?? 0},
@@ -138,6 +138,8 @@ export class Store implements IStore {
           ${key},
           ${val},
           ${expireTimestamp})
+      ON CONFLICT ("namespace", "group", "qq", "key") DO UPDATE SET
+        "value" = ${val}, "expire_timestamp" = ${expireTimestamp}
       `;
   }
 }

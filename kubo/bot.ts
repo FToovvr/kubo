@@ -13,6 +13,8 @@ import { SettingsManager } from "./modules/settings_manager/index.ts";
 
 import { PluginStoreWrapper, Store, StoreWrapper } from "./storage.ts";
 import {
+  ActivityStatus,
+  ActivityStatusWithDefault,
   ComplexMessageMatcher,
   extractMessageFilter,
   FallbackMessageMatcher,
@@ -101,6 +103,8 @@ export class KuboBot {
       await this.commands.init();
 
       this.roles = new RolesManager(this);
+
+      await this.initSettings();
     }
 
     for (const cb of this.#initCallbacks) {
@@ -117,6 +121,15 @@ export class KuboBot {
     this.isRunning = true;
 
     return new Promise(() => {});
+  }
+
+  private async initSettings() {
+    await this.settings.register("activity-status", {
+      info: { readableName: "bot 运行状态", description: "Bot 是否启用" },
+      valueType: "string", // "enabled" | "disabled" | "default"
+      default: "default",
+      // TODO: 加一个参数让 /cfg 看到后拒绝直接修改
+    });
   }
 
   private checkBotIsRunning() {
@@ -354,6 +367,69 @@ export class KuboBot {
   }
 
   //==== Actions ====
+
+  async changeActivityStatus(
+    // TODO: 支持 scope.qq，相当于 block
+    scope: "global" | { group: number },
+    newValue: "enabled" | "disabled" | "default",
+  ) {
+    if (newValue === "default") {
+      await this.settings.set(scope, "activity-status", null);
+    } else {
+      await this.settings.set(scope, "activity-status", newValue);
+    }
+  }
+
+  async getActivityStatus(_scope: "global" | { group: number }) {
+    // TODO: 把 settings.set 改为接收 "global" | { group: number }
+    //       或者 { scope: "global" } | { scope: "group"; group: number }
+    //       或者专门写一个 Scope 类
+    const scope = _scope === "global" ? {} : _scope;
+
+    const defaultStatus: ActivityStatus = "enabled"; // TODO: 允许在运行时修改
+    const globalStatus = (await this.settings.get(
+      {},
+      "activity-status",
+    )) as ActivityStatusWithDefault;
+    const globalCalculated =
+      (globalStatus === "default"
+        ? defaultStatus
+        : globalStatus) as ActivityStatus;
+
+    const globalActivityStatus = {
+      default: defaultStatus,
+      global: globalStatus,
+      globalCalculated,
+      calculated: globalCalculated,
+    };
+    if (scope === "global") {
+      return globalActivityStatus;
+    }
+
+    const groupStatus = await this.settings.get(
+      scope,
+      "activity-status",
+    ) as ActivityStatusWithDefault;
+    if (globalCalculated === "disabled") {
+      return {
+        ...globalActivityStatus,
+        group: groupStatus,
+        groupCalculated: "disabled" as ActivityStatus,
+        isGroupValueIgnored: true,
+        calculated: "disabled" as ActivityStatus,
+      };
+    }
+    const groupCalculated = groupStatus === "default"
+      ? globalCalculated
+      : groupStatus;
+    return {
+      ...globalActivityStatus,
+      group: groupStatus,
+      groupCalculated,
+      isGroupValueIgnored: false,
+      calculated: groupCalculated,
+    };
+  }
 
   async sendGroupMessage(
     toGroup: number,

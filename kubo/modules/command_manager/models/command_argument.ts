@@ -63,6 +63,11 @@ export class CommandArgument implements ComplexPiecePart<true> {
     return Number.isNaN(num) ? null : num;
   }
 
+  get integer(): number | null {
+    const number = this.number;
+    return Number.isInteger(number) ? number : null;
+  }
+
   get bigint(): bigint | null {
     if (!this.text) return null;
     try {

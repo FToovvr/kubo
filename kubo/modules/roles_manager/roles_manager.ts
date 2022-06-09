@@ -7,6 +7,21 @@ export class RolesManager {
     this.bot = bot;
   }
 
+  async canManageBot(scope: "global" | { group: number }, qq: number) {
+    if (scope === "global") {
+      return await this.getUserGlobalRoles(qq).canManageBot();
+    } else {
+      return await this.getUserGroupRoles(qq, scope.group).canManageBot();
+    }
+  }
+  getRolesCanManageBot(scope: "global" | { group: number }) {
+    if (scope === "global") {
+      return GlobalRoles.rolesCanManageBot;
+    } else {
+      return GroupRoles.rolesCanManageBot;
+    }
+  }
+
   getUserGlobalRoles(qq: number) {
     return new GlobalRoles(this.bot, qq);
   }
@@ -16,7 +31,7 @@ export class RolesManager {
   }
 }
 
-// TODO
+// TODO: 正式写一个基类
 export type Roles = GlobalRoles;
 
 export class GlobalRoles {
@@ -42,6 +57,13 @@ export class GlobalRoles {
 
   // TODO:
   // - hasRole(roleText)
+
+  async canManageBot() {
+    return await this.isBotOwner();
+  }
+  static get rolesCanManageBot() {
+    return [roleName_botOwner];
+  }
 
   async getGlobalRoles(): Promise<Role[]> {
     const roles: Role[] = [];
@@ -85,6 +107,16 @@ export class GroupRoles extends GlobalRoles {
   async isGroupOwnerOrAdmin() {
     const role = await this.getRawUserRoleInGroup();
     return role === "owner" || role === "admin";
+  }
+
+  async canManageBot() {
+    return await super.canManageBot() || await this.isGroupOwnerOrAdmin();
+  }
+  static get rolesCanManageBot() {
+    return [
+      ...super.rolesCanManageBot,
+      ...[roleName_groupOwner, roleName_groupAdmin],
+    ];
   }
 
   async getRawUserRoleInGroup() {
@@ -157,20 +189,25 @@ export class Role {
   }
 }
 
+const roleName_botSelf = "骰子自身";
 const role_botSelf = new Role({
   namespace: "kubo",
   internalName: "bot-self",
-  displayName: "骰子自身",
+  displayName: roleName_botSelf,
   scope: "global",
 });
 
+const roleName_botOwner = "骰子拥有者";
 const role_botOwner = new Role({
   namespace: "kubo",
   internalName: "bot-owner",
-  displayName: "骰子拥有者",
+  displayName: roleName_botOwner,
   scope: "global",
 });
 
+const roleName_groupMember = "群一般成员";
+const roleName_groupOwner = "群主";
+const roleName_groupAdmin = "群管理员";
 function makeRole_groupRole(
   group: number,
   role: "member" | "owner" | "admin" | string,
@@ -180,12 +217,12 @@ function makeRole_groupRole(
   if (role === "member" || role === "owner" || role === "admin") {
     roleText = role;
     if (role === "member") {
-      displayName = "群一般成员";
+      displayName = roleName_groupMember;
     } else if (role === "owner") {
-      displayName = "群主";
+      displayName = roleName_groupOwner;
     } else {
       if (role !== "admin") throw new Error("never");
-      displayName = "群管理员";
+      displayName = roleName_groupAdmin;
     }
   } else {
     roleText = "unknown-" + role;

@@ -33,6 +33,7 @@ export type LooseCommandEntity =
     Omit<CommandEntity, "command" | "supportedStyles">,
     | "isExclusive"
     | "referencePolicy"
+    | "canRunEvenWhenBotOff"
     | "argumentsBeginningPolicy"
   >
   & {
@@ -44,10 +45,11 @@ export function completeCommandEntity(
   entity: LooseCommandEntity,
 ): CommandEntity {
   const isExclusive = entity.isExclusive ?? false;
+  const canRunEvenWhenBotOff = entity.canRunEvenWhenBotOff ?? false;
 
   let supportedStyles: Set<CommandStyle>;
   if (!entity.supportedStyles) {
-    if (isExclusive) {
+    if (isExclusive || canRunEvenWhenBotOff) {
       supportedStyles = new Set(["line"]);
     } else {
       supportedStyles = new Set(["line", "embedded"]);
@@ -61,15 +63,34 @@ export function completeCommandEntity(
   }
   // delete entity.supportedStyles;
 
-  return {
+  const result: CommandEntity = {
     command,
     isExclusive,
     referencePolicy: "omittable",
+    canRunEvenWhenBotOff: false,
     argumentsBeginningPolicy: "follows-spaces",
 
     ...entity,
     supportedStyles,
   };
+
+  const onlySupportsLineCommand = result.supportedStyles.size === 1 &&
+    result.supportedStyles.has("line");
+  if (result.isExclusive && !onlySupportsLineCommand) {
+    // TODO: 专门的 Error class
+    throw new Error("独占命令只能是整行命令");
+  }
+  if (result.canRunEvenWhenBotOff) {
+    // TODO: 专门的 Error class
+    if (!onlySupportsLineCommand) {
+      throw new Error("支持在 bot 关闭时执行的命令只能是整行命令");
+    }
+    if (result.argumentsBeginningPolicy !== "follows-spaces") {
+      throw new Error("支持在 bot 关闭时执行的命令必须要求其头部与参数列表之间存在空白");
+    }
+  }
+
+  return result;
 }
 
 /**

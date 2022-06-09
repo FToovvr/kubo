@@ -2,13 +2,18 @@ import { CommandArgument } from "../../modules/command_manager/models/command_ar
 import { CommandCallbackReturnValue } from "../../modules/command_manager/models/command_entity.ts";
 import { PluginContextForCommand } from "../../modules/command_manager/models/execute_context.ts";
 
-export function makeUnknownArgumentErrorText(i: number, arg: CommandArgument) {
+export function makeUnknownArgumentErrorText(
+  i: number | null,
+  arg: CommandArgument,
+) {
   let error = "未知参数";
   // TODO: 提供一个将参数文本化的函数？
   if (arg.text) {
     error += ` ${Deno.inspect(arg.text)}`;
   }
-  error += `（位于第 ${i + 1} 位）`;
+  if (i !== null) {
+    error += `（位于第 ${i + 1} 位）`;
+  }
   return error;
 }
 
@@ -38,11 +43,17 @@ export function makeCheckUsageText(
 export function makeBadArgumentsError(
   ctx: PluginContextForCommand,
   errors: string[],
+  extra: { subCommand?: string } = {},
 ) {
   if (!errors.length) throw new Error("never");
-  return {
-    error: "参数有误，" + errors[0] + "！" + makeCheckUsageText(ctx),
-  };
+
+  let error = "";
+  if ("subCommand" in extra) {
+    error += `子命令 ${extra.subCommand} 的`;
+  }
+  error += "参数有误，" + errors[0] + "！" + makeCheckUsageText(ctx);
+
+  return { error };
 }
 
 export function getShortestHead(heads: string[]) {
