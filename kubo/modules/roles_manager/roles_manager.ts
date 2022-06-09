@@ -138,13 +138,17 @@ export class Role {
     this.scope = args.scope;
   }
 
-  get debugName() {
+  getDebugName(extra: { usesLongForm: boolean } = { usesLongForm: false }) {
     let scopeText: string;
     if (this.scope === "global") {
       scopeText = "";
     } else if ("group" in this.scope) {
       if (Object.keys(this.scope).length !== 1) throw new Error("never");
-      scopeText = `[group=${this.scope.group}]`;
+      if (extra.usesLongForm) {
+        scopeText = `[group=${this.scope.group}]`;
+      } else {
+        scopeText = "";
+      }
     } else {
       throw new Error("never");
     }

@@ -73,7 +73,9 @@ function makeCallback(bot: KuboBot): CommandCallback {
 
     // TODO: 改善输出（比如把 “目标” 改成昵称）
     return `目标（QQ=${targetQQ}）在本群拥有的角色：\n` +
-      roleArray.map((r) => `【${r.displayName}】（${r.debugName}）`).join("\n");
+      roleArray
+        .map((r) => `【${r.displayName}】（${r.getDebugName()}）`)
+        .join("\n");
   };
 }
 
