@@ -14,38 +14,36 @@ ${prefix}command ${prefix}cmd ${prefix}命令
 `.trim();
 }
 
-function makeCallback(bot: KuboBot): CommandCallback {
-  return async (ctx, args) => {
-    if (!args.length) return makeNoArgumentsUsage(ctx.prefix ?? "", ctx.head);
+const callback: CommandCallback = async (ctx, args) => {
+  if (!args.length) return makeNoArgumentsUsage(ctx.prefix ?? "", ctx.head);
 
-    const firstFlag = args[0].flag;
-    if (firstFlag === "h" || firstFlag === "help") {
-      return makeNoArgumentsUsage(ctx.prefix ?? "", ctx.head);
-    }
+  const firstFlag = args[0].flag;
+  if (firstFlag === "h" || firstFlag === "help") {
+    return makeNoArgumentsUsage(ctx.prefix ?? "", ctx.head);
+  }
 
-    const subCmd = args[0].text;
-    if (!subCmd || subCmd === "help" && args.length === 1) {
-      return makeNoArgumentsUsage(ctx.prefix ?? "", ctx.head);
-    }
+  const subCmd = args[0].text;
+  if (!subCmd || subCmd === "help" && args.length === 1) {
+    return makeNoArgumentsUsage(ctx.prefix ?? "", ctx.head);
+  }
 
-    if (subCmd === "h" || subCmd === "help" && args.length === 2) {
-      let target = args[1].text;
-      if (!target) return { error: "所给命令并非文本，请检查查询的命令是否有误！" };
-      const prefix = await bot.commands.getPrefix( // 为以后可能有的复数前缀留个心眼
-        ctx.message.groupId !== undefined ? { group: ctx.message.groupId } : {},
-      );
-      if (target.startsWith(prefix)) {
-        target = target.slice(prefix.length);
-      }
-      if (!target.length) return { error: "不接受查询纯前缀！" };
-      return await subCmd_help(bot, target, ctx.message.groupId);
-    } else if (subCmd === "l" || subCmd === "list" && args.length === 1) {
-      return subCmd_list(bot, ctx.prefix ?? "", ctx.message.groupId);
-    } else {
-      return { error: "参数有误！" + makeCheckUsageText(ctx) };
+  if (subCmd === "h" || subCmd === "help" && args.length === 2) {
+    let target = args[1].text;
+    if (!target) return { error: "所给命令并非文本，请检查查询的命令是否有误！" };
+    const prefix = await ctx.bot.commands.getPrefix( // 为以后可能有的复数前缀留个心眼
+      ctx.message.groupId !== undefined ? { group: ctx.message.groupId } : {},
+    );
+    if (target.startsWith(prefix)) {
+      target = target.slice(prefix.length);
     }
-  };
-}
+    if (!target.length) return { error: "不接受查询纯前缀！" };
+    return await subCmd_help(ctx.bot, target, ctx.message.groupId);
+  } else if (subCmd === "l" || subCmd === "list" && args.length === 1) {
+    return subCmd_list(ctx.bot, ctx.prefix ?? "", ctx.message.groupId);
+  } else {
+    return { error: "参数有误！" + makeCheckUsageText(ctx) };
+  }
+};
 
 async function subCmd_help(
   bot: KuboBot,
@@ -107,7 +105,7 @@ export default function () {
         description: "查询/管理命令",
         // supportedStyles: "line",
         isExclusive: true,
-        callback: makeCallback(bot),
+        callback,
       });
       bot.commands.registerAlias(entity, ["cmd", "命令"]);
     },

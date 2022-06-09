@@ -135,6 +135,7 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
 
     this.parsedMessage = tokenizeMessage(env, cleanedMessage);
     this.pluginContext = new PluginContextForMessage({
+      bot: this.bot as unknown as KuboBot, // TODO: 更优雅一些
       event,
       ...(replyAt ? { replyAt } : {}),
     });
@@ -145,6 +146,7 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
     if (!this.parsedMessage) return "skip";
     if (this.executedMessage) throw new Error("never");
 
+    // TODO: 更优雅一些
     this.executeContext.pluginContext = this.pluginContext!;
 
     this.executedMessage = [];

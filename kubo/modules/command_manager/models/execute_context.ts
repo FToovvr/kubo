@@ -259,14 +259,17 @@ export class ExecuteContextForMessage {
 }
 
 interface PluginContextForMessageArguments {
+  bot: KuboBot;
   event: MessageEvent;
   replyAt?: ReplyAt;
 }
 export class PluginContextForMessage {
+  bot: KuboBot;
   event: MessageEvent;
   replyAt?: ReplyAt;
 
   constructor(args: PluginContextForMessageArguments) {
+    this.bot = args.bot;
     this.event = args.event;
     if (args.replyAt) {
       this.replyAt = args.replyAt;
@@ -347,6 +350,10 @@ export class PluginContextForCommand {
 
   get message() {
     return this.executeContext.pluginContext;
+  }
+
+  get bot() {
+    return this.message.bot;
   }
 
   readonly prefix: string | null;
