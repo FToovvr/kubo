@@ -20,7 +20,7 @@ import {
   MessageEvent,
   MessageOfGroupEvent,
 } from "../../../../go_cqhttp_client/events.ts";
-import { KuboBot } from "../../../bot.ts";
+import { KuboBot } from "../../../index.ts";
 import { ExecutedLine } from "../types.ts";
 
 interface ExecutionFailure {

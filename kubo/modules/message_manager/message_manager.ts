@@ -8,7 +8,7 @@ import {
   RequestRawEvent,
 } from "../../../go_cqhttp_client/events.ts";
 import { Reply, ReplyAt } from "../../../go_cqhttp_client/message_piece.ts";
-import { KuboBot } from "../../bot.ts";
+import { KuboBot } from "../../index.ts";
 import utils from "../../utils.ts";
 
 export class MessageManager {

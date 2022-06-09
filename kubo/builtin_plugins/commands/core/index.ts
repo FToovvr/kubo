@@ -1,4 +1,4 @@
-import { KuboBot } from "../../../bot.ts";
+import { KuboBot } from "../../../index.ts";
 import createHelpPlugin from "./help.ts";
 import createCommandPlugin from "./command.ts";
 import createRolePlugin from "./role.ts";

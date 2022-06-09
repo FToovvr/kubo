@@ -6,7 +6,7 @@ import {
 } from "../../../go_cqhttp_client/message_piece.ts";
 import { Trie } from "../../../utils/aho_corasick.ts";
 import { Optional } from "../../../utils/type_utils.ts";
-import { KuboBot, ProcessResult } from "../../bot.ts";
+import { KuboBot } from "../../index.ts";
 import { SettingsManager } from "../settings_manager/index.ts";
 import { CommandTrie } from "./types.ts";
 import {
@@ -22,6 +22,7 @@ import { evaluateMessage } from "./evaluator.ts";
 import { generateUnifiedResponse } from "./utils.ts";
 import { mergeAdjoiningTextPiecesInPlace } from "../../../utils/message_utils.ts";
 import { Spy } from "https://deno.land/x/mock@0.15.0/mod.ts";
+import { ProcessResult } from "../../types.ts";
 
 /**
  * 存储注册命令数据所用的数据结构的简化版。

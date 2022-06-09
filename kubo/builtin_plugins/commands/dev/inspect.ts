@@ -1,4 +1,4 @@
-import { KuboBot, KuboPlugin } from "../../../bot.ts";
+import { KuboBot, KuboPlugin } from "../../../index.ts";
 import { CommandCallback } from "../../../modules/command_manager/models/command_entity.ts";
 import {
   makeBadArgumentsError,

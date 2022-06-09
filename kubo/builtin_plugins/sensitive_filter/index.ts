@@ -1,4 +1,4 @@
-import { KuboPlugin } from "../../bot.ts";
+import { KuboPlugin } from "../../index.ts";
 import { SensitiveFilter } from "./sensitive_filter.ts";
 
 export default function (dict: string[]): KuboPlugin {

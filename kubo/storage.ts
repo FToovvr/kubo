@@ -2,7 +2,7 @@ import { Client as PgClient } from "https://deno.land/x/postgres@v0.16.0/mod.ts"
 
 import utils from "./utils.ts";
 
-import { KuboPlugin } from "./bot.ts";
+import { KuboPlugin } from "./types.ts";
 
 type Value = number | string | null;
 

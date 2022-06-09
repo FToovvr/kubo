@@ -1,4 +1,4 @@
-import { KuboBot } from "./../../bot.ts";
+import { KuboBot } from "./../../index.ts";
 
 export class RolesManager {
   private bot: KuboBot;

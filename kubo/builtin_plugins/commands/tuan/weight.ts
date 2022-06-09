@@ -1,4 +1,4 @@
-import { KuboPlugin } from "../../../bot.ts";
+import { KuboPlugin } from "../../../index.ts";
 import {
   CommandCallback,
   CommandUsageCallback,

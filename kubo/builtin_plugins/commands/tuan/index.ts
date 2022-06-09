@@ -1,4 +1,4 @@
-import { KuboBot } from "../../../bot.ts";
+import { KuboBot } from "../../../index.ts";
 import createChoosePlugin from "./choose.ts";
 import createWeightPlugin from "./weight.ts";
 

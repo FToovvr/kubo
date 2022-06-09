@@ -2,7 +2,7 @@ import {
   RegularMessagePiece,
   text,
 } from "../../../../go_cqhttp_client/message_piece.ts";
-import { KuboPlugin } from "../../../bot.ts";
+import { KuboPlugin } from "../../../index.ts";
 import { CommandArgument } from "../../../modules/command_manager/models/command_argument.ts";
 import {
   CommandCallback,

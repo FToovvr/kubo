@@ -1,7 +1,6 @@
 import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
 import utils from "./utils.ts";
 
-import { KuboPlugin } from "./bot.ts";
 import { IStore } from "./storage.ts";
 
 type Value = number | string | null;

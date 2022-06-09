@@ -3,7 +3,7 @@ import {
   text,
 } from "../../../go_cqhttp_client/message_piece.ts";
 import { MessageLine } from "../../../utils/message_utils.ts";
-import { KuboBot } from "../../bot.ts";
+import { KuboBot } from "../../index.ts";
 import {
   CommandNote,
   ExecutedCommandPiece,
