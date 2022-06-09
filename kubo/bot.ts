@@ -27,11 +27,19 @@ import {
 } from "./types.ts";
 import utils from "./utils.ts";
 
+class BotNotRunningError extends Error {
+  constructor() {
+    super("Bot is not running!");
+  }
+}
+
 export class KuboBot {
   // 不建议插件直接使用
   _client: GoCqHttpClient;
   _db: PgClient;
   _store: Store;
+
+  isRunning = false;
 
   self!: {
     qq: number;
@@ -106,7 +114,13 @@ export class KuboBot {
       `登陆账号：QQ「${this.self.qq}」，昵称「${this.self.nickname}」`,
     );
 
+    this.isRunning = true;
+
     return new Promise(() => {});
+  }
+
+  private checkBotIsRunning() {
+    if (!this.isRunning) throw new BotNotRunningError();
   }
 
   async close() {
@@ -154,6 +168,7 @@ export class KuboBot {
   }
 
   getStore(plugin: KuboPlugin) {
+    if (!this.isRunning) new BotNotRunningError();
     return new PluginStoreWrapper(this._store, plugin);
   }
 
@@ -188,7 +203,7 @@ export class KuboBot {
     ]
   )[] = [];
 
-  initOnMessage() {
+  private initOnMessage() {
     const processPureTextMessage = <
       T extends MessageEvent,
       Cb extends OnMessageCallback<T, "text">,
@@ -343,6 +358,8 @@ export class KuboBot {
     toGroup: number,
     message: string | MessagePiece[],
   ) {
+    this.checkBotIsRunning();
+
     for (const hook of this.hooks.beforeSendMessage) {
       const _msg = hook(this, message) ?? message;
       if (_msg instanceof Object && "intercept" in _msg && _msg.intercept) {
@@ -357,6 +374,8 @@ export class KuboBot {
     toQQ: number,
     message: string | MessagePiece[],
   ) {
+    this.checkBotIsRunning();
+
     for (const hook of this.hooks.beforeSendMessage) {
       const _msg = hook(this, message) ?? message;
       if (_msg instanceof Object && "intercept" in _msg && _msg.intercept) {
@@ -368,6 +387,8 @@ export class KuboBot {
   }
 
   async handleFriendRequest(flag: string, action: "approve" | "deny") {
+    this.checkBotIsRunning();
+
     return await this._client.handleFriendRequest(flag, action);
   }
 }
