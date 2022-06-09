@@ -167,8 +167,9 @@ export class KuboBot {
     return this;
   }
 
-  getStore(plugin: KuboPlugin) {
-    if (!this.isRunning) new BotNotRunningError();
+  getPluginStore(plugin: KuboPlugin) {
+    this.checkBotIsRunning();
+
     return new PluginStoreWrapper(this._store, plugin);
   }
 

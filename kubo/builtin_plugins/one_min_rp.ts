@@ -8,7 +8,7 @@ export default function () {
     id,
 
     init(bot) {
-      store = bot.getStore(plugin);
+      store = bot.getPluginStore(plugin);
       // 迷思：好多骰子都有 jrrp 功能，会不会其实都是为了测试数据持久化功能？
       bot.commands.registerCommand("1mrp", {
         readableName: "一分钟人品",
