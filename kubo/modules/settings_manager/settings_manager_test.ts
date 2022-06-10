@@ -16,11 +16,11 @@ async function withManager(
   const db = new DB();
   const store = new TestStore();
   store.init();
-  const wrapper = new StoreWrapper(store, "settings");
-  const manager = new SettingsManager(wrapper);
+  const manager = new SettingsManager(store);
 
   await cb(manager);
 
+  manager.close();
   store.close();
   db.close();
 }

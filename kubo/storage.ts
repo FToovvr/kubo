@@ -6,6 +6,11 @@ import { KuboPlugin } from "./types.ts";
 
 type Value = number | string | null;
 
+export interface StoreSetArguments {
+  expireTimestamp?: number;
+  expireInterval?: number;
+}
+
 export interface IStore {
   get: (
     ctx: { namespace: string; group?: number; qq?: number },
@@ -15,7 +20,7 @@ export interface IStore {
     ctx: { namespace: string; group?: number; qq?: number },
     key: string,
     val: Value,
-    args: { expireTimestamp?: number; expireInterval?: number },
+    args: StoreSetArguments,
   ) => Promise<void>;
 }
 
@@ -151,27 +156,123 @@ export class StoreWrapper {
     return this._namespace;
   }
 
-  constructor(store: IStore, namespace: string) {
+  private usesCache: boolean;
+  private writesBackImmediately?: boolean;
+  private cache: {
+    [group: number]: {
+      [qq: number]: {
+        [key: string]: {
+          value: Value;
+          hasChanged: boolean;
+          args?: StoreSetArguments;
+        };
+      };
+    };
+  } = {};
+
+  constructor(
+    store: IStore,
+    namespace: string,
+    args:
+      | {}
+      | { usesCache: false }
+      | { usesCache: true; writesBackImmediately: boolean } = {},
+  ) {
     this.store = store;
     this._namespace = namespace;
+    if ("usesCache" in args) {
+      this.usesCache = args.usesCache;
+      if (args.usesCache) {
+        this.writesBackImmediately = args.writesBackImmediately;
+      }
+    } else {
+      this.usesCache = false;
+    }
+  }
+
+  // 记得调用
+  async close() {
+    await this.writeBack();
   }
 
   async get(ctx: { group?: number; qq?: number }, key: string) {
-    return await this.store.get({ namespace: this.namespace, ...ctx }, key);
+    if (this.usesCache) {
+      const value = this.cache[ctx.group ?? 0]?.[ctx.qq ?? 0]?.[key];
+      if (value !== undefined) return value.value;
+    }
+
+    const value = await this.store.get(
+      { namespace: this.namespace, ...ctx },
+      key,
+    );
+
+    if (this.usesCache) {
+      let cache = this.getCacheOfScope(ctx.group ?? null, ctx.qq ?? null);
+      let oldValue = cache[key]?.value;
+      if (oldValue !== undefined) {
+        if (oldValue !== value) throw new Error("never");
+      } else {
+        cache[key] = { value, hasChanged: false };
+      }
+    }
+
+    return value;
   }
 
   async set(
     ctx: { group?: number; qq?: number },
     key: string,
     val: Value,
-    args: { expireTimestamp?: number } = {},
+    args: StoreSetArguments = {},
   ) {
-    return await this.store.set(
+    if (this.usesCache) {
+      const cache = this.getCacheOfScope(ctx.group ?? null, ctx.qq ?? null);
+      cache[key] = { value: val, hasChanged: true, args };
+      if (!this.writesBackImmediately!) return;
+    }
+
+    await this.store.set(
       { namespace: this.namespace, ...ctx },
       key,
       val,
       args,
     );
+  }
+
+  async writeBack() {
+    for (const [group, groupCache] of Object.entries(this.cache)) {
+      for (const [qq, qqCache] of Object.entries(groupCache)) {
+        for (const [key, valueRecord] of Object.entries(qqCache)) {
+          const { value, hasChanged, args } = valueRecord;
+          if (!hasChanged) continue;
+          await this.store.set(
+            {
+              namespace: this.namespace,
+              ...(group !== "0" ? { group: Number(group) } : {}),
+              ...(qq !== "0" ? { qq: Number(qq) } : {}),
+            },
+            key,
+            value,
+            args!,
+          );
+          valueRecord.hasChanged = false;
+        }
+      }
+    }
+  }
+
+  getCacheOfScope(group: number | null, qq: number | null) {
+    let groupCache = this.cache[group ?? 0];
+    if (!groupCache) {
+      groupCache = {};
+      this.cache[group ?? 0] = groupCache;
+    }
+    let qqCache = groupCache[qq ?? 0];
+    if (!qqCache) {
+      qqCache = {};
+      groupCache[qq ?? 0] = qqCache;
+    }
+    return qqCache;
   }
 }
 

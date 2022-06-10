@@ -13,7 +13,7 @@ import {
 import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
 import { MessageEvent } from "../../../go_cqhttp_client/events.ts";
 import { SettingsManager } from "../settings_manager/index.ts";
-import { Store, StoreWrapper } from "../../storage.ts";
+import { StoreWrapper } from "../../storage.ts";
 import { _test_makeFakeCommand } from "./test_utils.ts";
 import {
   _test_makeMessageOfGroupEvent,
@@ -36,8 +36,7 @@ async function withCommandManager(
   const db = new DB();
   const store = new TestStore();
   store.init();
-  const wrapper = new StoreWrapper(store, "settings");
-  const settingsManager = new SettingsManager(wrapper);
+  const settingsManager = new SettingsManager(store);
 
   let onMessageCallback!: InstanceType<typeof CommandManager>["processMessage"];
   const bot: _MockKuboBot = {
@@ -63,6 +62,7 @@ async function withCommandManager(
     sendPrivateMessage: bot.sendPrivateMessage,
   });
 
+  settingsManager.close();
   store.close();
   db.close();
 }

@@ -97,9 +97,7 @@ export class KuboBot {
     this.initOnMessage();
 
     {
-      this.settings = new SettingsManager(
-        new StoreWrapper(this._store, "settings"),
-      );
+      this.settings = new SettingsManager(this._store);
 
       this.messages = new MessageManager(this._db, this._client);
       await this.messages.init();
@@ -143,6 +141,12 @@ export class KuboBot {
   }
 
   async close() {
+    // TODO: plugin.close
+    for (const wrapper of this.pluginStoreWrappers) {
+      wrapper.close();
+    }
+    this.settings.close();
+
     this._store.close();
     await this._db.end();
   }
@@ -186,10 +190,13 @@ export class KuboBot {
     return this;
   }
 
+  pluginStoreWrappers: PluginStoreWrapper[] = [];
   getPluginStore(plugin: KuboPlugin) {
     this.isBotRunningOrDie();
 
-    return new PluginStoreWrapper(this._store, plugin);
+    const wrapper = new PluginStoreWrapper(this._store, plugin);
+    this.pluginStoreWrappers.push(wrapper);
+    return wrapper;
   }
 
   //==== Common ====

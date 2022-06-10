@@ -1,4 +1,4 @@
-import { StoreWrapper } from "../../storage.ts";
+import { IStore, StoreWrapper } from "../../storage.ts";
 
 interface SettingRegisterNode {
   type: "collection" | "leaf";
@@ -46,8 +46,12 @@ export class SettingsManager {
    */
   private caches: { [key: number]: SettingNode } = {};
 
-  constructor(store: StoreWrapper) {
-    this.store = store;
+  constructor(store: IStore) {
+    this.store = new StoreWrapper(store, "settings");
+  }
+
+  close() {
+    this.store.close();
   }
 
   async registerCollection(
