@@ -47,7 +47,8 @@ function makeUsageExample(prefix: string, head: string) {
     （需要管理员或骰主身份） 
 
     全局开启/关闭 bot：
-    > ${prefix}${head} on/off -here
+    > ${prefix}${head} on/off -global
+    （需要骰主身份）
 `.trim();
 }
 
