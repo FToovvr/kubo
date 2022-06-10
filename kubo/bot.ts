@@ -5,7 +5,13 @@ import {
   MessageEvent,
   MessageOfGroupEvent,
 } from "../go_cqhttp_client/events.ts";
-import { MessagePiece, Text } from "../go_cqhttp_client/message_piece.ts";
+import {
+  getTypedMessagePiece,
+  MessagePiece,
+  Text,
+  text,
+} from "../go_cqhttp_client/message_piece.ts";
+import { extractReferenceFromMessage } from "../utils/message_utils.ts";
 import { CommandManager } from "./modules/command_manager/index.ts";
 import { MessageManager } from "./modules/message_manager/message_manager.ts";
 import { RolesManager } from "./modules/roles_manager/roles_manager.ts";
@@ -435,20 +441,19 @@ export class KuboBot {
     toGroup: number,
     message: string | MessagePiece[],
   ) {
-    this.isBotRunningOrDie();
-
-    for (const hook of this.hooks.beforeSendMessage) {
-      const _msg = hook(this, message) ?? message;
-      if (_msg instanceof Object && "intercept" in _msg && _msg.intercept) {
-        return null;
-      }
-      message = _msg as typeof message;
-    }
-    return await this._client.sendGroupMessage(toGroup, message);
+    return await this.sendMessage("group", toGroup, message);
   }
 
   async sendPrivateMessage(
     toQQ: number,
+    message: string | MessagePiece[],
+  ) {
+    return await this.sendMessage("private", toQQ, message);
+  }
+
+  async sendMessage(
+    place: "group" | "private",
+    toTarget: number,
     message: string | MessagePiece[],
   ) {
     this.isBotRunningOrDie();
@@ -460,7 +465,27 @@ export class KuboBot {
       }
       message = _msg as typeof message;
     }
-    return await this._client.sendPrivateMessage(toQQ, message);
+
+    if (typeof message === "string") {
+      message = [text(message)];
+    }
+    const counts = countMessageContent(message);
+    const checkResult = checkIfMessageFits(counts);
+    if (!checkResult.fits) {
+      const errorMessage: MessagePiece[] = [];
+      const { replyAt } = extractReferenceFromMessage(message);
+      if (replyAt) {
+        errorMessage.push(...replyAt.array);
+      }
+      errorMessage.push(text("拒绝发送响应消息：" + checkResult.error + "！"));
+      message = errorMessage;
+    }
+
+    if (place === "group") {
+      return await this._client.sendGroupMessage(toTarget, message);
+    } else if (place === "private") {
+      return await this._client.sendPrivateMessage(toTarget, message);
+    } else throw new Error("never");
   }
 
   async handleFriendRequest(flag: string, action: "approve" | "deny") {
@@ -468,4 +493,86 @@ export class KuboBot {
 
     return await this._client.handleFriendRequest(flag, action);
   }
+}
+
+interface MessageContentCounts {
+  bytes: number;
+  images: number;
+  hasReply: boolean;
+  standAloneAts: number;
+  emoticons: number;
+  otherPieces: Set<string>;
+}
+
+/**
+ * 检查要发送的单个消息大小是否合理。
+ * 标准：
+ * - 3000 字节
+ * - 10 张图（手机 TIM 能发 20 张）
+ * - 1 个 reply+at，以及 1 个单独的 at
+ * - face 算 10 个字节
+ * - 其他皆不允许
+ *
+ * TODO: 允许通过 /cfg 调节上限值
+ */
+function checkIfMessageFits(
+  counts: MessageContentCounts,
+): { fits: true } | { fits: false; error: string } {
+  if (counts.bytes + counts.emoticons * 10 > 3000) {
+    return {
+      fits: false,
+      error: `消息包含的文本有 ${counts.bytes} 字节，超过上限值（3000 字节）` +
+        (counts.emoticons ? "（每个表情算 10 字节）" : ""),
+    };
+  } else if (counts.images > 10) {
+    return {
+      fits: false,
+      error: `消息包含的图片有 ${counts.images} 张，超过上限值（10 张）`,
+    };
+  } else if (counts.standAloneAts > 1) {
+    return {
+      fits: false,
+      error: `消息包含的 at 有 ${counts.standAloneAts} 个，超过上限值（1 个）`,
+    };
+  } else if (counts.otherPieces.size) {
+    return {
+      fits: false,
+      error: "存在程序无法处理的内容：" + [...counts.otherPieces.values()].join("、"),
+    };
+  }
+  return { fits: true };
+}
+
+function countMessageContent(msg: MessagePiece[]): MessageContentCounts {
+  let counts = {
+    bytes: 0,
+    images: 0,
+    hasReply: false,
+    standAloneAts: 0,
+    emoticons: 0,
+    otherPieces: new Set<string>(),
+  };
+
+  for (let i = 0; i < msg.length; i++) {
+    const _piece = msg[i];
+    const pieces = getTypedMessagePiece(_piece);
+    if (pieces.text) {
+      counts.bytes += pieces.text.data.text.length;
+    } else if (pieces.image) {
+      counts.images++;
+    } else if (pieces.at) {
+      counts.standAloneAts++;
+    } else if (pieces.reply) {
+      counts.hasReply = true;
+      if (msg[i + 1]?.type === "at") {
+        i++;
+      }
+    } else if (pieces.emoticon) {
+      counts.emoticons++;
+    } else {
+      counts.otherPieces.add(_piece.type);
+    }
+  }
+
+  return counts;
 }
