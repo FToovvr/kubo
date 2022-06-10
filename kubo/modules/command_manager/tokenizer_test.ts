@@ -171,7 +171,6 @@ Deno.test(`${testPrefix} 组` as const, async (t) => {
   });
 
   await t.step("花括号转义", async (t) => {
-    throw new Error("TODO: FIXME");
     await testTokenizeMessage(t, context, {}, [
       { in: [text("\\{ foo }")], out: [[text("{ foo }")]] },
       { in: [text("{ foo \\}")], out: [[text("{ foo }")]] },
@@ -191,7 +190,10 @@ Deno.test(`${testPrefix} 组` as const, async (t) => {
         out: [[
           new GroupPiece({
             blankAtLeftSide: " ",
-            parts: [{ content: text("{ foo"), gapAtRight: "" }],
+            parts: [
+              { content: text("{"), gapAtRight: " " },
+              { content: text("foo"), gapAtRight: " " },
+            ],
           }),
         ]],
       },

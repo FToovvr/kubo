@@ -54,10 +54,27 @@ export function tokenizeMessage(
     ...pieces: (RegularMessagePiece | UnexecutedCommandPiece | GroupPiece)[]
   ) {
     const topState = states.length ? states[states.length - 1] : null;
+
     if (!topState) {
-      curLine.push(...pieces);
+      pushToCurLine(...pieces);
     } else {
       topState.pre.push(...pieces);
+    }
+  }
+  function pushToCurLine(
+    ...pieces: (RegularMessagePiece | UnexecutedCommandPiece | GroupPiece)[]
+  ) {
+    for (const piece of pieces) {
+      if (piece.type === "text") {
+        const lastPiece = curLine[curLine.length - 1];
+        if (lastPiece?.type === "text") {
+          curLine[curLine.length - 1] = text(
+            lastPiece.data.text + piece.data.text,
+          );
+          continue;
+        }
+      }
+      curLine.push(piece);
     }
   }
 
@@ -186,7 +203,7 @@ export function tokenizeMessage(
     if (curPiece.type === "text") {
       const curText = curPiece.data.text;
 
-      const matchCurlyBracket = /(?<!\\)[{}]/.exec(curText);
+      const matchCurlyBracket = /(\\?)([{}])/.exec(curText);
       if (matchCurlyBracket) {
         if (matchCurlyBracket.index > 0) {
           const textBeforeRb = curText.slice(0, matchCurlyBracket.index);
@@ -195,7 +212,15 @@ export function tokenizeMessage(
           continue;
         }
 
-        if (matchCurlyBracket[0] === "{") {
+        if (matchCurlyBracket[1].length) {
+          pushPieces(text(matchCurlyBracket[2]));
+          if (curText.length > "\\x".length) {
+            insertedQueue.splice(0, 0, text(curText.slice("\\x".length)));
+          }
+          continue;
+        }
+
+        if (matchCurlyBracket[2] === "{") {
           // 开花括号
           states.push({ state: "group", pre: new PreComplexPiece() });
           if (curText.length > "{".length) {
@@ -203,7 +228,7 @@ export function tokenizeMessage(
           }
         } else {
           // 闭花括号
-          if (matchCurlyBracket[0] !== "}") throw new Error("never");
+          if (matchCurlyBracket[2] !== "}") throw new Error("never");
           if (states.length > 0) {
             const topState = states[states.length - 1];
             if (topState.state === "group") {
@@ -227,7 +252,7 @@ export function tokenizeMessage(
     }
 
     if (states.length === 0) {
-      curLine.push(curPiece);
+      pushToCurLine(curPiece);
     } else {
       states[states.length - 1].pre.push(curPiece);
     }
@@ -245,7 +270,7 @@ export function tokenizeMessage(
       if (currentTopState) {
         currentTopState.pre.push(...reconstructed);
       } else {
-        curLine.push(...reconstructed);
+        pushToCurLine(...reconstructed);
       }
     } else {
       if (poppedState.state !== "line cmd") throw new Error("never");
@@ -254,9 +279,9 @@ export function tokenizeMessage(
         // allowsNoPrefix: lines.length === 0,
       });
       if (cmd) {
-        curLine.push(cmd);
+        pushToCurLine(cmd);
       } else {
-        curLine.push(...poppedState.pre.asPlain());
+        pushToCurLine(...poppedState.pre.asPlain());
       }
     }
   }
