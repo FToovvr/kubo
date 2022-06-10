@@ -1375,6 +1375,26 @@ Deno.test(`${testPrefix} 实际例子`, async (t) => {
       },
     ]);
   });
+
+  await t.step("case 2", async (t) => {
+    // 第二行的 /cmd 被识别成了 /c。
+    // 这边通过了，也就是说问题并非 tokenizer。
+    // 最终查明原因是执行后检查执行结果顺序反了。
+
+    const context = _test_makeContext(["c", "cmd"]);
+
+    await testTokenizeMessage(t, context, {}, [{
+      in: [text("目前这边的骰子实现的命令有这些…\n/cmd list")],
+      out: [
+        [text("目前这边的骰子实现的命令有这些…")],
+        [
+          _test_makeUnexecutedCommandPiece(context, ["c", "cmd"], {
+            gapAfterHead: " ",
+          }, [{ content: text("list"), gapAtRight: "" }]),
+        ],
+      ],
+    }]);
+  });
 });
 
 // Deno.test({

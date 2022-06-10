@@ -219,7 +219,8 @@ export class ExecuteContextForMessage {
     let qualified: ExecutedCommandPiece | null = null;
     let lastHasFailed: false | "error" | "warn" | null = null;
     // 完整地迭代一遍，以预防有两个命令候选被执行的情况
-    for (const executed of slot.executedCommands) {
+    for (let i = slot.executedCommands.length - 1; i >= 0; i--) {
+      const executed = slot.executedCommands[i];
       if (!executed.hasFailed) {
         if (qualified && !qualified.hasFailed) throw new Error("never");
         qualified = executed;
