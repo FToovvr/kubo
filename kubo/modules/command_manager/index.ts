@@ -1,1 +1,1 @@
-export { CommandManager } from "./manager.ts";
+export { CommandManager } from "./command_manager.ts";

@@ -1,4 +1,4 @@
-import { _MockKuboBot, CommandManager } from "./manager.ts";
+import { _MockKuboBot, CommandManager } from "./command_manager.ts";
 
 import {
   assertThrows,
