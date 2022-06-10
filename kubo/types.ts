@@ -95,3 +95,12 @@ export function extractMessageFilter(
 
 export type ActivityStatus = "enabled" | "disabled";
 export type ActivityStatusWithDefault = ActivityStatus | "default";
+
+export interface MessageContentCounts {
+  bytes: number;
+  images: number;
+  hasReply: boolean;
+  standAloneAts: number;
+  emoticons: number;
+  otherPieces: Set<string>;
+}

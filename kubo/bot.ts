@@ -502,15 +502,6 @@ export class KuboBot {
   }
 }
 
-interface MessageContentCounts {
-  bytes: number;
-  images: number;
-  hasReply: boolean;
-  standAloneAts: number;
-  emoticons: number;
-  otherPieces: Set<string>;
-}
-
 /**
  * 检查要发送的单个消息大小是否合理。
  * 标准：
