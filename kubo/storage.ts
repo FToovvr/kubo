@@ -197,8 +197,9 @@ export class StoreWrapper {
 
   async get(ctx: { group?: number; qq?: number }, key: string) {
     if (this.usesCache) {
-      const value = this.cache[ctx.group ?? 0]?.[ctx.qq ?? 0]?.[key];
-      if (value !== undefined) return value.value;
+      let cache = this.getCacheOfScope(ctx.group ?? null, ctx.qq ?? null);
+      const valueWrapper = cache[key];
+      if (valueWrapper !== undefined) return valueWrapper.value;
     }
 
     const value = await this.store.get(

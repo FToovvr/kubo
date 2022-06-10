@@ -189,24 +189,24 @@ Deno.test("kubo/settings_manager", async (t) => {
       const info = { readableName: "为了司寇坡！", description: "又看不到…" };
       await m.register(path, { info, valueType: "number" });
 
-      assertEquals(await m.get({ group: 1 }, path), null);
+      assertEquals(await m.get({ group: 1 }, path, true), null);
 
       await m.set({ group: 1 }, path, 123);
-      assertEquals(await m.get({ group: 1 }, path), 123);
+      assertEquals(await m.get({ group: 1 }, path, true), 123);
       assertEquals(await m.get({}, path), null);
 
       await m.set({}, path, 456);
-      assertEquals(await m.get({ group: 1 }, path), 123);
+      assertEquals(await m.get({ group: 1 }, path, true), 123);
       assertEquals(await m.get({}, path), 456);
-      assertEquals(await m.get({ group: 2 }, path), 456);
+      assertEquals(await m.get({ group: 2 }, path, true), 456);
 
       await m.set({ group: 2 }, path, 789);
-      assertEquals(await m.get({ group: 1 }, path), 123);
+      assertEquals(await m.get({ group: 1 }, path, true), 123);
       assertEquals(await m.get({}, path), 456);
-      assertEquals(await m.get({ group: 2 }, path), 789);
+      assertEquals(await m.get({ group: 2 }, path, true), 789);
 
       await m.set({ group: 1 }, path, null);
-      assertEquals(await m.get({ group: 1 }, path), 456);
+      assertEquals(await m.get({ group: 1 }, path, true), 456);
     });
     await t.step("default", async (t) => {
       const path = "for default";
@@ -214,21 +214,21 @@ Deno.test("kubo/settings_manager", async (t) => {
       await m.register(path, { info, valueType: "number", default: 42 });
 
       assertEquals(await m.get({}, path), 42);
-      assertEquals(await m.get({ group: 1 }, path), 42);
+      assertEquals(await m.get({ group: 1 }, path, true), 42);
 
       await m.set({ group: 1 }, path, 123);
-      assertEquals(await m.get({ group: 1 }, path), 123);
+      assertEquals(await m.get({ group: 1 }, path, true), 123);
 
       await m.set({}, path, 456);
-      assertEquals(await m.get({ group: 1 }, path), 123);
-      assertEquals(await m.get({ group: 2 }, path), 456);
+      assertEquals(await m.get({ group: 1 }, path, true), 123);
+      assertEquals(await m.get({ group: 2 }, path, true), 456);
 
       await m.set({}, path, null);
-      assertEquals(await m.get({ group: 1 }, path), 123);
-      assertEquals(await m.get({ group: 2 }, path), 42);
+      assertEquals(await m.get({ group: 1 }, path, true), 123);
+      assertEquals(await m.get({ group: 2 }, path, true), 42);
 
       await m.set({ group: 1 }, path, null);
-      assertEquals(await m.get({ group: 1 }, path), 42);
+      assertEquals(await m.get({ group: 1 }, path, true), 42);
     });
   });
 });
