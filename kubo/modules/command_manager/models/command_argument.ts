@@ -139,6 +139,11 @@ export class CommandArgument implements ComplexPiecePart<true> {
     return option.key.slice(1);
   }
 
+  get isDivider() {
+    const text = this.text;
+    return text === "--" || text === "—"; // 苹果的自动合并
+  }
+
   get evaluated(): RegularMessagePiece[] {
     if (
       this.content.type === "__kubo_executed_command" ||

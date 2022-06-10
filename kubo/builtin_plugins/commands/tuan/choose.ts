@@ -106,7 +106,7 @@ const callback: CommandCallback = (ctx, args) => {
 
   for (const [i, arg] of args.entries()) {
     const flag = arg.flag;
-    if (flag) {
+    if (flag || arg.isDivider) {
       if (flag === "h" || flag === "help") {
         shouldSendUsage = true;
       } else if (flag === "l" || flag === "list") {
@@ -115,7 +115,7 @@ const callback: CommandCallback = (ctx, args) => {
           continue;
         }
         possibleSources = "list";
-      } else if (flag === "-") {
+      } else if (arg.isDivider) { // --
         if (possibleSources === "list") {
           errors.push("已包含 -list，不能在参数列表中包含候选内容");
           break;
@@ -128,6 +128,7 @@ const callback: CommandCallback = (ctx, args) => {
       }
       continue;
     }
+
     const number = arg.bigint;
     if (number === null && arg.number !== null) {
       errors.push("序号并非整数");
@@ -141,6 +142,7 @@ const callback: CommandCallback = (ctx, args) => {
       }
       continue;
     }
+
     errors.push(makeUnknownArgumentErrorText(i, arg));
   }
 
