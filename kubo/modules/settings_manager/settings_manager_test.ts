@@ -5,15 +5,11 @@ import {
   assertRejects,
 } from "https://deno.land/std@0.134.0/testing/asserts.ts";
 
-import { DB } from "https://deno.land/x/sqlite@v3.3.0/mod.ts";
-
-import { StoreWrapper } from "../../storage.ts";
 import { TestStore } from "../../test_storage.ts";
 
 async function withManager(
   cb: (manager: SettingsManager) => Promise<void> | void,
 ) {
-  const db = new DB();
   const store = new TestStore();
   store.init();
   const manager = new SettingsManager(store);
@@ -22,7 +18,6 @@ async function withManager(
 
   manager.close();
   store.close();
-  db.close();
 }
 
 Deno.test("kubo/settings_manager", async (t) => {
