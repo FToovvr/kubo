@@ -2154,7 +2154,7 @@ function _test_makeExecuted(
 }
 
 function _test_makeExecuteContextForMessage() {
-  return new ExecuteContextForMessage();
+  return new ExecuteContextForMessage(null);
 }
 
 function _test_makeExpectedResult(

@@ -84,7 +84,8 @@ export class KuboBot {
     this.ownerQQ = cfg?.ownerQQ || null;
   }
 
-  log(label: string, level: "debug" | "info", ...args: any[]) {
+  log(label: string, level: "debug" | "info" | "error", ...args: any[]) {
+    // NOTE: 如果要直接在输出错误信息，应该清理掉信息中的绝对路径，而只使用相对路径
     console.log(level, label, ...args);
   }
 

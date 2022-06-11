@@ -34,6 +34,12 @@ interface ExecutionFailure {
  * 一条消息的执行上下文
  */
 export class ExecuteContextForMessage {
+  bot: KuboBot | null;
+
+  constructor(bot: KuboBot | null) {
+    this.bot = bot;
+  }
+
   nextCommandId = 1;
   // TODO: slotId 由 tokenizer 分配，这样也许能够方便实现预览嵌入命令前后的内容
   nextSlotId = -1;
@@ -141,8 +147,18 @@ export class ExecuteContextForMessage {
           } else if (e instanceof Error && e.message === "never") {
             throw e;
           } else {
-            // TODO: log
-            // NOTE: 如果要直接在输出错误信息，应该清理掉信息中的绝对路径，而只使用相对路径
+            if (this.bot) {
+              let message = "执行命令途中遭遇异常";
+              if (e instanceof Error) {
+                message + "：" + e.message;
+                if (e.stack) {
+                  message += "\n" + e.stack;
+                }
+              } else {
+                message += "：" + String(e);
+              }
+              this.bot.log("command_manager", "error", message);
+            }
             error = { level: "system-error", content: "执行命令途中遭遇异常，请参考日志！" };
           }
         }

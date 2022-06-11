@@ -130,7 +130,9 @@ class MessageEvaluator<Bot extends BaseBot = KuboBot> {
       this.inputMessage,
     );
 
-    this.executeContext = new ExecuteContextForMessage();
+    this.executeContext = new ExecuteContextForMessage(
+      this.bot as unknown as KuboBot,
+    );
 
     if (leadingAt && Number(leadingAt.data.qq) !== this.bot.self.qq) {
       // 专门指定了 bot，但并非本 bot
