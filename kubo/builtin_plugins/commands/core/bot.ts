@@ -10,6 +10,8 @@ import {
   makeBadArgumentsError,
   makeUnknownArgumentErrorText,
   makeUsageResponse,
+  newScopeFormToOld,
+  ScopeParser,
 } from "../utils.ts";
 
 // TODO: /bot status -all
@@ -146,7 +148,7 @@ async function subCmd_activity(
       return makeBadArgumentsError(ctx, errors, { subCommand: "status" });
     }
 
-    return changeActivityStatus(ctx, changesTo, scope);
+    return changeActivityStatus(ctx, changesTo, scope!);
   }
 
   const { scope, errors } = parseScopeFromSubCommandArguments(
@@ -157,7 +159,7 @@ async function subCmd_activity(
     return makeBadArgumentsError(ctx, errors, { subCommand: "status" });
   }
 
-  return generateActivityText(ctx, scope);
+  return generateActivityText(ctx, scope!);
 }
 
 async function changeActivityStatus(
@@ -257,64 +259,38 @@ function parseScopeFromSubCommandArguments(
   subCmdArgs: CommandArgument[],
 ) {
   const errors: string[] = [];
-  let scope: "global" | { group: number } | null = null;
 
+  const scopeParser = new ScopeParser();
   for (const [i, arg] of subCmdArgs.entries()) {
     if (i > 0) {
       errors.push("子命令参数过多");
       continue;
     }
-    const flag = arg.flag;
-    if (flag) {
-      if (flag === "here") {
-        if (scope) {
-          errors.push(`子命令参数 -${flag} 与其他参数冲突`);
-          continue;
-        }
-        if (ctx.message.isInGroupChat) {
-          scope = { group: ctx.message.groupId! };
-        } else {
-          errors.push(`子命令参数 -${flag} 只能在群聊中使用`);
-        }
-      } else if (flag === "global") {
-        if (scope) {
-          errors.push(`子命令参数 -${flag} 与其他参数冲突`);
-          continue;
-        }
-        scope = "global";
-      } else {
-        errors.push(`未知子命令标志项 -${flag}`);
-      }
-      continue;
-    }
 
-    const option = arg.option;
-    if (option) {
-      if (option.key === "-group") {
-        const group = option.value.integer;
-        if (group !== null && group > 0) {
-          scope = { group };
-        } else {
-          errors.push(`-${flag} 选项的值必须为正整数`);
-        }
-      } else {
-        errors.push(`未知子命令选项 -${option.key}`);
-      }
-      continue;
-    }
+    const { hasConsumed } = scopeParser.parse(ctx, arg);
+    if (hasConsumed) continue;
 
     errors.push(makeUnknownArgumentErrorText(null, arg));
   }
 
-  if (!scope) {
+  errors.push(...scopeParser.errors);
+
+  let scope = scopeParser.finalScope;
+  if (scope === null) {
     if (ctx.message.isInGroupChat) {
-      scope = { group: ctx.message.groupId! };
+      scope = { scope: "group", group: ctx.message.groupId! };
     } else {
-      scope = "global";
+      scope = { scope: "global" };
     }
+  } else if (scope?.scope === "user") {
+    scope = undefined;
+    errors.push("该子命令不适用于用户");
   }
 
-  return { scope, errors };
+  return {
+    scope: newScopeFormToOld(scope) as "global" | { group: number },
+    errors,
+  };
 }
 
 function getActivityStatusName(status: ActivityStatusWithDefault) {
