@@ -1,5 +1,6 @@
 import {
   GetGroupMemberInfoResponse,
+  GetImageInfoResponse,
   SendMessageResponse,
 } from "./api_response.ts";
 import { MessagePiece } from "./message_piece.ts";
@@ -60,6 +61,14 @@ export class APIClient {
       user_id: qq,
       ...(extra.prefersCache ? {} : { no_cache: true }),
     })) as GetGroupMemberInfoResponse;
+
+    return resp.data;
+  }
+
+  async getImageInfo(fileName: string) {
+    const resp = (await this.fetch("/get_image", {
+      file: fileName,
+    })) as GetImageInfoResponse;
 
     return resp.data;
   }

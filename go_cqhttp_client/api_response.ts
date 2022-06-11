@@ -29,3 +29,14 @@ export interface GetGroupMemberInfoResponse {
   retcode: number;
   status: "ok" | string;
 }
+
+export interface GetImageInfoResponse {
+  data: null | {
+    size: number;
+    filename: string;
+    url: string;
+  };
+
+  retcode: number;
+  status: "ok" | string;
+}

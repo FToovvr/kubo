@@ -17,7 +17,7 @@ ${head}
 
 使用方式：
     <引用一条回复>
-    ${prefix}inspect [-array|-cq|-full-event] [-this]
+    ${prefix}inspect [-array|-cq|-full-event|-image] [-this]
 
 选项：
     -h -help  输出帮助文本（本文本）
@@ -38,7 +38,7 @@ const callback: CommandCallback = async (ctx, args) => {
 
   let shouldSendUsage = false;
   let errors: string[] = [];
-  let toDisplay: "array" | "cq" | "full-event" | null = null;
+  let toDisplay: "array" | "cq" | "full-event" | "image" | null = null;
 
   for (const [i, arg] of args.entries()) {
     const flag = arg.flag;
@@ -54,7 +54,8 @@ const callback: CommandCallback = async (ctx, args) => {
       }
       case "array":
       case "cq":
-      case "full-event": {
+      case "full-event":
+      case "image": {
         if (toDisplay) {
           errors.push(`参数 -${toDisplay} 与其他参数冲突`);
         }
@@ -90,9 +91,19 @@ const callback: CommandCallback = async (ctx, args) => {
       return { error: "该消息不存在 CQ 码的形式。" };
     }
     return JSON.stringify(message.raw_message, null, 2);
-  } else {
-    if (toDisplay !== "full-event") throw new Error("never");
+  } else if (toDisplay === "full-event") {
     return JSON.stringify(message, null, 2);
+  } else {
+    if (toDisplay !== "image") throw new Error("never");
+    const out = [];
+    for (const piece of message.message) {
+      if (piece.type !== "image") continue;
+      out.push({
+        raw: piece,
+        info: await ctx.bot._client.apiClient.getImageInfo(piece.data?.file),
+      });
+    }
+    return JSON.stringify(out, null, 2);
   }
 };
 
