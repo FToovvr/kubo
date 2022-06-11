@@ -44,77 +44,77 @@ Deno.test(`${testPrefix}`, async (t) => {
         for (let i = 0; i < half; i++) { // 尚未触发冷却
           const result = await m.reportOutboundGroupMessage(42, userA);
           assert(result.isOk);
-          assertEquals(result.error, undefined);
+          assertEquals(result.errors, []);
         }
         for (let i = half; i < threshold; i++) { // 尚未触发冷却
           const result = await m.reportOutboundPrivateMessage(userA);
           assert(result.isOk);
-          assertEquals(result.error, undefined);
+          assertEquals(result.errors, []);
         }
         { // 在群组触发冷却
           const result = await m.reportOutboundGroupMessage(groupA, userA);
           assert(!result.isOk);
           // 触发冷却的那个操作，会返回错误文本
-          assertEquals(typeof result.error, "string");
+          assertEquals(result.errors.length, 1);
         }
         { // 触发冷却后的私聊
           const result = await m.reportOutboundPrivateMessage(userA);
           assert(!result.isOk);
           // 冷却期间的操作，不会返回错误文本
-          assertEquals(result.error, null);
+          assertEquals(result.errors, []);
         }
         { // 其他用户不受影响
           const result = await m.reportOutboundGroupMessage(groupA, userB);
           assert(result.isOk);
-          assertEquals(result.error, undefined);
+          assertEquals(result.errors, []);
         }
         { // 其他用户不受影响
           const result = await m.reportOutboundPrivateMessage(userB);
           assert(result.isOk);
-          assertEquals(result.error, undefined);
+          assertEquals(result.errors, []);
         }
 
         time.tick(1000 * 59); // 59 秒后
         { // 仍然在冷却
           const result = await m.reportOutboundGroupMessage(groupA, userA);
           assert(!result.isOk);
-          assertEquals(result.error, null);
+          assertEquals(result.errors, []);
         }
         time.tick(1000 * 1); // 整 60 秒后
         { // 冷却解除，群聊恢复
           const result = await m.reportOutboundGroupMessage(groupA, userA);
           assert(result.isOk);
-          assertEquals(result.error, undefined);
+          assertEquals(result.errors, []);
         }
         { // 冷却解除，私聊恢复
           const result = await m.reportOutboundPrivateMessage(userA);
           assert(result.isOk);
-          assertEquals(result.error, undefined);
+          assertEquals(result.errors, []);
         }
 
         // 再次触发冷却
         for (let i = 0; i < threshold - 2; i++) {
           const result = await m.reportOutboundPrivateMessage(userA);
           assert(result.isOk);
-          assertEquals(result.error, undefined);
+          assertEquals(result.errors, []);
         }
         {
           const result = await m.reportOutboundPrivateMessage(userA);
           assert(!result.isOk);
-          assertEquals(typeof result.error, "string");
+          assertEquals(result.errors.length, 1);
         }
         // 同一天第二次触发是五分钟
         time.tick(1000 * (5 * 60 - 1)); // 4 分 59 秒后
         {
           const result = await m.reportOutboundPrivateMessage(userA);
           assert(!result.isOk);
-          assertEquals(result.error, null);
+          assertEquals(result.errors, []);
         }
         time.tick(1000 * 1); // 整 5 分钟后
         {
           const result = await m.reportOutboundPrivateMessage(userA);
           assert(result.isOk);
-          assertEquals(result.error, undefined);
+          assertEquals(result.errors, []);
         }
       });
     });
@@ -129,22 +129,22 @@ Deno.test(`${testPrefix}`, async (t) => {
           const userBX = userBBase + i;
           const result = await m.reportOutboundGroupMessage(groupA, userBX);
           assert(result.isOk);
-          assertEquals(result.error, undefined);
+          assertEquals(result.errors, []);
         }
         { // 触发冷却
           const result = await m.reportOutboundGroupMessage(groupA, userA);
           assert(!result.isOk);
-          assertEquals(typeof result.error, "string");
+          assertEquals(result.errors.length, 1);
         }
         { // 触发群组冷却的用户不会触发用户冷却
           const result = await m.reportOutboundGroupMessage(groupB, userA);
           assert(result.isOk);
-          assertEquals(result.error, undefined);
+          assertEquals(result.errors, []);
         }
         { // 没有参与触发群组冷却的用户也会受到群组冷却的限制
           const result = await m.reportOutboundGroupMessage(groupA, userC);
           assert(!result.isOk);
-          assertEquals(result.error, null);
+          assertEquals(result.errors, []);
         }
       });
     });
@@ -159,30 +159,30 @@ Deno.test(`${testPrefix}`, async (t) => {
           const userBX = userBBase + i;
           const result = await m.reportOutboundPrivateMessage(userBX);
           assert(result.isOk);
-          assertEquals(result.error, undefined);
+          assertEquals(result.errors, []);
         }
         { // 触发冷却
           const result = await m.reportOutboundGroupMessage(groupA, userA);
           assert(!result.isOk);
-          assertEquals(typeof result.error, "string");
+          assertEquals(result.errors.length, 1);
         }
         { // 在其他不相干的地方也触发冷却
           const result = await m.reportOutboundGroupMessage(groupB, userC);
           assert(!result.isOk);
           // 对于全局冷却，每个试图操作的地方都能收到一次相关提示
-          assertEquals(typeof result.error, "string");
+          assertEquals(result.errors.length, 1);
         }
         { // 相同的地方不会触发第二次提示
           const result = await m.reportOutboundGroupMessage(groupA, userA);
           assert(!result.isOk);
-          assertEquals(result.error, null);
+          assertEquals(result.errors, []);
         }
         time.tick(1000 * (5 * 60 - 1)); // 进展到解除冷却的前一秒
         { // 私聊也有提示
           const userB0 = userBBase + 0;
           const result = await m.reportOutboundPrivateMessage(userB0);
           assert(!result.isOk);
-          assertEquals(typeof result.error, "string");
+          assertEquals(result.errors.length, 1);
         }
 
         time.tick(1000); // 解除冷却
@@ -192,23 +192,23 @@ Deno.test(`${testPrefix}`, async (t) => {
             const userBX = userBBase + i;
             const result = await m.reportOutboundPrivateMessage(userBX);
             assert(result.isOk);
-            assertEquals(result.error, undefined);
+            assertEquals(result.errors, []);
           }
           { // 同上：触发冷却
             const result = await m.reportOutboundGroupMessage(groupA, userA);
             assert(!result.isOk);
-            assertEquals(typeof result.error, "string");
+            assertEquals(result.errors.length, 1);
           }
           { // 同上：在其他不相干的地方也触发冷却
             const result = await m.reportOutboundGroupMessage(groupB, userC);
             assert(!result.isOk);
             // 之前收到过全局冷却提示的地方，在新的冷却期也会重新收到
-            assertEquals(typeof result.error, "string");
+            assertEquals(result.errors.length, 1);
           }
           { // 同上：相同的地方不会触发第二次提示
             const result = await m.reportOutboundGroupMessage(groupA, userA);
             assert(!result.isOk);
-            assertEquals(result.error, null);
+            assertEquals(result.errors, []);
           }
         }
       });
