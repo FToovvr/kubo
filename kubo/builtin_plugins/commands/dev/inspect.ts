@@ -80,7 +80,7 @@ const callback: CommandCallback = async (ctx, args) => {
   }
   if (errors.length) return makeBadArgumentsError(ctx, errors);
 
-  const message = await ctx.message.getRepliedMessageEventRaw(ctx.bot);
+  const message = await ctx.message.getRepliedMessageEventRaw();
   if (!message) return { error: "未找到消息，很可能是本 bot 本地并未存有该消息。" };
 
   toDisplay = toDisplay ?? "array";
