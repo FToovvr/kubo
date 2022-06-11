@@ -286,7 +286,7 @@ export class CommandManager {
     if (out.length > 0) {
       // console.log(Deno.inspect(out, { depth: Infinity }));
       if (group) {
-        bot.sendGroupMessage(group, out);
+        bot.sendGroupMessage(group, out, { sourceQQ: callerQQ });
       } else { // TODO: 处理匿名的情况
         bot.sendPrivateMessage(callerQQ, out);
       }

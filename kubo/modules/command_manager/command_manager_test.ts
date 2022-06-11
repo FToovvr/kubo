@@ -238,7 +238,7 @@ Deno.test(`${testPrefix} 回复`, async (t) => {
                 args: [groupId, [
                   ...expectedReplyAt.array,
                   text(expectedResponse),
-                ]],
+                ], { sourceQQ: senderQQ }],
               },
             );
             assertSpyCalls(spies.sendPrivateMessage, 0);

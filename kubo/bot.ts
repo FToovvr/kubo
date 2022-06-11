@@ -13,6 +13,7 @@ import {
 } from "../go_cqhttp_client/message_piece.ts";
 import { extractReferenceFromMessage } from "../utils/message_utils.ts";
 import { CommandManager } from "./modules/command_manager/index.ts";
+import { FloodMonitor } from "./modules/flood_monitor/flood_monitor.ts";
 import { MessageManager } from "./modules/message_manager/message_manager.ts";
 import { RolesManager } from "./modules/roles_manager/roles_manager.ts";
 import { SettingsManager } from "./modules/settings_manager/index.ts";
@@ -25,6 +26,7 @@ import {
   extractMessageFilter,
   FallbackMessageMatcher,
   KuboPlugin,
+  MessageContentCounts,
   MessageMatcher,
   OnAllMessageCallback,
   OnGroupMessageCallback,
@@ -58,6 +60,7 @@ export class KuboBot {
   messages!: MessageManager;
   commands!: CommandManager;
   roles!: RolesManager;
+  floodMonitor!: FloodMonitor;
 
   utils = utils;
 
@@ -109,6 +112,10 @@ export class KuboBot {
       this.roles = new RolesManager(this);
 
       await this.initSettings();
+
+      this.floodMonitor = new FloodMonitor(this._store, {
+        thresholds: { global: 60, group: 30, user: 15 },
+      });
     }
 
     for (const cb of this.#initCallbacks) {
@@ -145,6 +152,7 @@ export class KuboBot {
     for (const wrapper of this.pluginStoreWrappers) {
       wrapper.close();
     }
+    this.floodMonitor.close();
     this.settings.close();
 
     this._store.close();
@@ -447,31 +455,42 @@ export class KuboBot {
   async sendGroupMessage(
     toGroup: number,
     message: string | MessagePiece[],
+    args: { sourceQQ: number; sourceGroup?: number },
   ) {
-    return await this.sendMessage("group", toGroup, message);
+    return await this.sendMessage("group", toGroup, message, {
+      sourceQQ: args.sourceQQ,
+      sourceGroup: args.sourceGroup ?? toGroup,
+    });
   }
 
   async sendPrivateMessage(
     toQQ: number,
     message: string | MessagePiece[],
+    args: { sourceQQ?: number; sourceGroup?: number } = {},
   ) {
-    return await this.sendMessage("private", toQQ, message);
+    return await this.sendMessage("private", toQQ, message, {
+      sourceQQ: args.sourceQQ ?? toQQ,
+      sourceGroup: args.sourceGroup ?? null,
+    });
   }
 
   async sendMessage(
     place: "group" | "private",
     toTarget: number,
     message: string | MessagePiece[],
-  ) {
+    args: { sourceQQ: number; sourceGroup: number | null },
+  ): Promise<{ sent: false | "message" | "error"; response: any | null }> {
     this.isBotRunningOrDie();
 
     for (const hook of this.hooks.beforeSendMessage) {
       const _msg = hook(this, message) ?? message;
       if (_msg instanceof Object && "intercept" in _msg && _msg.intercept) {
-        return null;
+        return { sent: false, response: null };
       }
       message = _msg as typeof message;
     }
+
+    let errorMessages: string[] = [];
 
     if (typeof message === "string") {
       message = [text(message)];
@@ -479,20 +498,45 @@ export class KuboBot {
     const counts = countMessageContent(message);
     const checkResult = checkIfMessageFits(counts);
     if (!checkResult.fits) {
-      const errorMessage: MessagePiece[] = [];
-      const { replyAt } = extractReferenceFromMessage(message);
-      if (replyAt) {
-        errorMessage.push(...replyAt.array);
-      }
-      errorMessage.push(text("拒绝发送响应消息：" + checkResult.error + "！"));
-      message = errorMessage;
+      errorMessages.push("拒绝发送响应消息：" + checkResult.error + "！");
     }
 
+    let floodCheck: { isOk: boolean; error?: string | null };
+    if (args.sourceGroup) {
+      floodCheck = await this.floodMonitor.reportOutboundGroupMessage(
+        args.sourceGroup,
+        args.sourceQQ,
+        counts,
+      );
+    } else {
+      floodCheck = await this.floodMonitor.reportOutboundPrivateMessage(
+        args.sourceQQ,
+        counts,
+      );
+    }
+    if (!floodCheck.isOk) {
+      if (!floodCheck.error) return { sent: false, response: null };
+      errorMessages.push("冷却中：" + floodCheck.error + "！");
+    }
+
+    let sent: "message" | "error" = "message";
+    if (errorMessages.length) {
+      const { replyAt } = extractReferenceFromMessage(message);
+      message = [];
+      sent = "error";
+      if (replyAt) {
+        message.push(...replyAt.array);
+      }
+      message.push(text(errorMessages.join("\n")));
+    }
+
+    let resp: any;
     if (place === "group") {
-      return await this._client.sendGroupMessage(toTarget, message);
+      resp = await this._client.sendGroupMessage(toTarget, message);
     } else if (place === "private") {
-      return await this._client.sendPrivateMessage(toTarget, message);
+      resp = await this._client.sendPrivateMessage(toTarget, message);
     } else throw new Error("never");
+    return { sent, response: resp };
   }
 
   async handleFriendRequest(flag: string, action: "approve" | "deny") {

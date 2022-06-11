@@ -100,9 +100,13 @@ async function main() {
     });
 
     bot.onMessage("all", "123", (bot, msg, ev) => {
-      const promises: Promise<string>[] = [];
+      const promises: Promise<any>[] = [];
       for (let i = 1; i <= 3; i++) {
-        promises.push(bot.sendGroupMessage(groups[0], String(i)));
+        promises.push(
+          bot.sendGroupMessage(groups[0], String(i), {
+            sourceQQ: ev.sender.qq,
+          }),
+        );
       }
       (async () => {
         const results = await Promise.all(promises);
@@ -115,6 +119,7 @@ async function main() {
         const ret = await bot.sendGroupMessage(
           groups[0],
           buildMessage`${imageFromBase64(猫猫睡觉)}`,
+          { sourceQQ: ev.sender.qq },
         );
       })();
       return "stop";
@@ -137,7 +142,9 @@ async function main() {
       (async () => {
         let ret: any;
         if (ev instanceof MessageOfGroupEvent) {
-          ret = await bot.sendGroupMessage(groups[0], outMsg);
+          ret = await bot.sendGroupMessage(groups[0], outMsg, {
+            sourceQQ: ev.sender.qq,
+          });
         } else if (ev instanceof MessageOfPrivateEvent) {
           ret = await bot.sendPrivateMessage(ev.sender.qq, outMsg);
         }

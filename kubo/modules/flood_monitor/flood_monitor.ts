@@ -39,10 +39,10 @@ export class FloodMonitor {
 
   async reportOutboundGroupMessage(
     group: number,
-    triggerQQ: number,
+    sourceQQ: number,
     counts?: MessageContentCounts,
   ) {
-    return await this.reportOutboundMessage(group, triggerQQ, counts);
+    return await this.reportOutboundMessage(group, sourceQQ, counts);
   }
 
   async reportOutboundPrivateMessage(
@@ -54,14 +54,14 @@ export class FloodMonitor {
 
   private async reportOutboundMessage(
     group: number | null,
-    triggerQQ: number,
+    sourceQQ: number,
     counts?: MessageContentCounts, // TODO: 把发送内容的大小也计入考察当中
   ): Promise<{ isOk: boolean; error?: string | null }> {
     const now = new Date();
 
     const informee = {
       place: group ? "group" : "private" as "group" | "private",
-      target: group ? group : triggerQQ,
+      target: group ? group : sourceQQ,
     };
 
     const globalResult = await this.process(
@@ -82,7 +82,7 @@ export class FloodMonitor {
     }
 
     const userResult = await this.process(
-      { qq: triggerQQ },
+      { qq: sourceQQ },
       now,
       this.thresholds.user,
     );
@@ -100,8 +100,6 @@ export class FloodMonitor {
       target: number;
     },
   ): Promise<{ isOk: true } | { isOk: false; error: string | null }> {
-    const expireAt = new Date(now);
-
     // 检查是否已在冷却
     const isFrozen = await this.checkAndUpdateFreezingStatus(scope, now);
     if (isFrozen) {
@@ -123,9 +121,11 @@ export class FloodMonitor {
     }
 
     // 获取一分钟内的消息的时间戳
+    const oneMinuteAgo = new Date(now);
+    oneMinuteAgo.setMinutes(now.getMinutes() - 1);
     const outbound = filterOutExpired(
       await getTextList(this.store, scope, "outbound"),
-      expireAt,
+      oneMinuteAgo,
     );
 
     // 更新记录的消息的时间戳
