@@ -314,20 +314,20 @@ export class PluginContextForMessage {
     }
     return undefined;
   }
-  async getRepliedMessageEventRaw(bot: KuboBot) {
+  async getRepliedMessageEventRaw() {
     const seqData = this.replyAtSeqData;
     if (seqData) {
       if ("qq" in seqData) {
-        return await bot.messages.getMessageEventRaw(seqData);
+        return await this.bot.messages.getMessageEventRaw(seqData);
       }
       if ("group" in seqData) {
-        return await bot.messages.getMessageEventRaw(seqData);
+        return await this.bot.messages.getMessageEventRaw(seqData);
       }
     }
 
     const replyAt = this.replyAt;
     if (replyAt) {
-      return await bot.messages.getMessageEventRaw(replyAt);
+      return await this.bot.messages.getMessageEventRaw(replyAt);
     }
   }
 }
