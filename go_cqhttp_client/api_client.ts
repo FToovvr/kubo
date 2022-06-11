@@ -65,6 +65,13 @@ export class APIClient {
     return resp.data;
   }
 
+  async getGroupMemberList(group: number) {
+    const resp = (await this.fetch("/get_group_member_list", {
+      group_id: group,
+    })) as GetGroupMemberInfoResponse;
+    return resp.data;
+  }
+
   async getImageInfo(fileName: string) {
     const resp = (await this.fetch("/get_image", {
       file: fileName,

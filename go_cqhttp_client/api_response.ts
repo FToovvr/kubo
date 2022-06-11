@@ -1,14 +1,17 @@
+type ResponseStatus = "ok" | string;
+
 export interface SendMessageResponse {
   // 尚不清楚失败会是什么情况
   data: null | {
     message_id: number;
   };
   retcode: number;
-  status: "ok" | string;
+  status: ResponseStatus;
 }
 
 export interface GetGroupMemberInfoResponse {
   data: null | { // 挑一些可能有用的
+    user_id: number; // QQ
     nickname: string; // QQ 昵称
     card: string; // 群名片
     card_changeable: boolean;
@@ -27,7 +30,14 @@ export interface GetGroupMemberInfoResponse {
   };
 
   retcode: number;
-  status: "ok" | string;
+  status: ResponseStatus;
+}
+
+export interface GetGroupMemberListResponse {
+  data: null | Partial<Exclude<GetGroupMemberInfoResponse["data"], null>>[];
+
+  retcode: number;
+  status: ResponseStatus;
 }
 
 export interface GetImageInfoResponse {
@@ -38,5 +48,5 @@ export interface GetImageInfoResponse {
   };
 
   retcode: number;
-  status: "ok" | string;
+  status: ResponseStatus;
 }
