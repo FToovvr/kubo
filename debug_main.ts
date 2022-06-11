@@ -42,7 +42,7 @@ async function main() {
       // 在处理完令牌桶后的延时
       // TODO: 应该直接和令牌桶整合
       messageDelay: () => {
-        return randIntBM(111, 888);
+        return randIntBM(111, 345);
       },
     },
   });
