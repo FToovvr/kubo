@@ -1,13 +1,6 @@
 type ResponseStatus = "ok" | string;
 
-export interface SendMessageResponse {
-  // 尚不清楚失败会是什么情况
-  data: null | {
-    message_id: number;
-  };
-  retcode: number;
-  status: ResponseStatus;
-}
+//==== info ====//
 
 export interface GetGroupMemberInfoResponse {
   data: null | { // 挑一些可能有用的
@@ -45,6 +38,30 @@ export interface GetImageInfoResponse {
     size: number;
     filename: string;
     url: string;
+  };
+
+  retcode: number;
+  status: ResponseStatus;
+}
+
+//==== message ====//
+
+export interface SendMessageResponse {
+  // 尚不清楚失败会是什么情况
+  data: null | {
+    message_id: number;
+  };
+  retcode: number;
+  status: ResponseStatus;
+}
+
+//==== request ====//
+
+//==== mise ====
+
+export interface DownloadFileResponse {
+  data: null | {
+    file: string; //相对路径
   };
 
   retcode: number;

@@ -1,4 +1,5 @@
 import {
+  DownloadFileResponse,
   GetGroupMemberInfoResponse,
   GetGroupMemberListResponse,
   GetImageInfoResponse,
@@ -136,5 +137,21 @@ export class APIClient {
       flag,
       approve: action === "approve",
     });
+  }
+
+  //==== mise ====
+
+  /**
+   * 要是能直接返回二进制内容就好了，
+   * 再不济也提供一个相对路径啊，就像 `/get_image` 里的那样…
+   */
+  async downloadFile(url: string) {
+    const resp = await this.fetch("/download_file", {
+      url,
+    }) as DownloadFileResponse;
+
+    // FIXME: 突然发觉，有的返回 resp，有的返回 resp.data。
+    //        应该统一一下（比如都返回 resp）
+    return resp.data;
   }
 }
