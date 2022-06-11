@@ -3,7 +3,6 @@ import { parse as parseYaml } from "https://deno.land/std@0.134.0/encoding/yaml.
 import * as path from "https://deno.land/std@0.134.0/path/mod.ts";
 
 import { Client as PgClient } from "https://deno.land/x/postgres@v0.16.0/mod.ts";
-import { createCanvas } from "https://deno.land/x/canvas@v1.4.1/mod.ts";
 
 import {
   StandardWebSocketClient,
@@ -78,6 +77,7 @@ async function main() {
   const bot = makeDefaultKuboBot(client, pgClient, {
     sensitiveList,
     ownerQQ: config.common["owner-qq"],
+    isDebug: true,
   });
   const groups = config["x-allowed-groups"];
 
@@ -151,67 +151,6 @@ async function main() {
       })();
 
       return "stop";
-    });
-
-    bot.commands.registerCommand("随机单色图片", {
-      readableName: "随机单色图片",
-      description: "[DEBUG] 生成随机单色图片",
-      callback: () => {
-        const canvas = createCanvas(1, 1);
-        const ctx = canvas.getContext("2d");
-        const [r, g, b] = [
-          bot.utils.randInt(0, 255),
-          bot.utils.randInt(0, 255),
-          bot.utils.randInt(0, 255),
-        ];
-        ctx.fillStyle = `rgb(${r},${g},${b})`;
-        ctx.fillRect(0, 0, 1, 1);
-        const base64 = encodeBase64(canvas.toBuffer());
-        return [
-          imageFromBase64(base64),
-          text(ctx.fillStyle),
-        ];
-      },
-    });
-
-    bot.commands.registerCommand("echo", {
-      readableName: "回响",
-      description: "[DEBUG] 将输入的参数输出",
-      callback: (ctx, args) => {
-        let _ret = args?.map((arg) => {
-          const sole = arg.sole;
-          if (!sole) return [text("[complex]")];
-
-          if (sole.type === "__kubo_executed_command") {
-            if (sole.hasFailed) return [text("[failed-cmd]")];
-            if (sole.result?.embedding?.length ?? 0 > 0) {
-              return [
-                text(`[cmd:${sole.command.command},content=`),
-                ...sole.result!.embedding!,
-                text(`]`),
-              ];
-            } else {
-              return [text(`[cmd:${sole.command.command}]`)];
-            }
-          }
-          if (sole.type === "text") return [sole];
-          return [text("[other]")];
-        });
-        const ret = _ret?.flatMap((arg, i) =>
-          i < _ret!.length - 1 ? [...arg, text(" ")] : [...arg]
-        );
-        if (ret) {
-          return {
-            response: ret,
-            embedding: ret,
-          };
-        }
-      },
-    });
-    bot.commands.registerCommand("error", {
-      readableName: "错误",
-      description: "[DEBUG] 返回错误",
-      callback: (ctx, args) => ({ error: "error" }),
     });
   });
 

@@ -118,18 +118,18 @@ export class KuboBot {
       });
     }
 
+    this.self = await this._client.getLoginInfo();
+
+    this.isRunning = true;
     for (const cb of this.#initCallbacks) {
       cb(this);
     }
 
-    this.self = await this._client.getLoginInfo();
     this.log(
       "kubo",
       "info",
       `登陆账号：QQ「${this.self.qq}」，昵称「${this.self.nickname}」`,
     );
-
-    this.isRunning = true;
 
     return new Promise(() => {});
   }

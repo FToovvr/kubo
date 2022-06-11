@@ -1,9 +1,11 @@
-import { KuboPlugin } from "../index.ts";
-import { PluginStoreWrapper } from "../storage.ts";
+import { KuboPlugin } from "../../../index.ts";
+import { PluginStoreWrapper } from "../../../storage.ts";
+
+const id = "one_min_rp";
 
 export default function () {
-  const id = "one_min_rp";
   let store: PluginStoreWrapper | null = null;
+
   const plugin: KuboPlugin = {
     id,
 
@@ -12,7 +14,7 @@ export default function () {
       // 迷思：好多骰子都有 jrrp 功能，会不会其实都是为了测试数据持久化功能？
       bot.commands.registerCommand("1mrp", {
         readableName: "一分钟人品",
-        description: "jrrp，但是只有一分钟",
+        description: "[DEBUG] jrrp，但是只有一分钟（测试持久化存储）",
         callback: (ctx, args) => {
           // TODO: ctx.sender
           throw new Error("unimplemented");

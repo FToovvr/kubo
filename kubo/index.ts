@@ -13,13 +13,19 @@ import { registerBuiltinCommands } from "./builtin_plugins/commands/index.ts";
 export function makeDefaultKuboBot(client: GoCqHttpClient, db: PgClient, args: {
   sensitiveList?: string[];
   ownerQQ?: number | number[];
+  isDebug?: boolean;
 }) {
+  args = {
+    isDebug: false,
+    ...args,
+  };
+
   const bot = new KuboBot(client, db, args);
 
   bot.init((bot) => {
     bot.use(approveAllFriendRequests())
       .use(args.sensitiveList ? sensitiveFilter(args.sensitiveList) : null)
-      .batch((bot) => registerBuiltinCommands(bot))
+      .batch((bot) => registerBuiltinCommands(bot, { isDebug: args.isDebug! }))
       // .use(oneMinRp())
       .use(null); // 防止分号被补到上一行
   });
