@@ -152,7 +152,7 @@ export class KuboBot {
     for (const wrapper of this.pluginStoreWrappers) {
       wrapper.close();
     }
-    this.floodMonitor.close();
+    await this.floodMonitor.close();
     this.settings.close();
 
     this._store.close();

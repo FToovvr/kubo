@@ -147,7 +147,7 @@ export class FloodMonitor {
     );
 
     // 更新记录的消息的时间戳
-    const newOutBound = [...outbound, "" + (Number(now) / 1000)];
+    const newOutBound = [...outbound, "" + Math.floor(Number(now) / 1000)];
     await this.store.set(
       scope,
       "outbound",
@@ -179,13 +179,13 @@ export class FloodMonitor {
       await this.store.set(
         scope,
         "triggered",
-        [...formerTriggered, "" + Number(now) / 1000].join(","),
+        [...formerTriggered, "" + Math.floor(Number(now) / 1000)].join(","),
       );
 
       // 设置冷却时间
       const freezeUntil = new Date(now);
       freezeUntil.setMinutes(now.getMinutes() + minutes);
-      const freezeUntilTs = Number(freezeUntil) / 1000;
+      const freezeUntilTs = Math.floor(Number(freezeUntil) / 1000);
       await this.store.set(scope, "freeze-until", String(freezeUntilTs));
 
       // 返回说明消息
@@ -257,6 +257,7 @@ export class FloodMonitor {
 function filterOutExpired(textTss: string[], expireAt: Date) {
   const index = textTss
     .findIndex((textTs) => new Date(Number(textTs) * 1000) >= expireAt);
+  if (index < 0) return [];
   return textTss.slice(index);
 }
 
