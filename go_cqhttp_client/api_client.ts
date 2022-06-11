@@ -1,5 +1,6 @@
 import {
   GetGroupMemberInfoResponse,
+  GetGroupMemberListResponse,
   GetImageInfoResponse,
   SendMessageResponse,
 } from "./api_response.ts";
@@ -68,7 +69,7 @@ export class APIClient {
   async getGroupMemberList(group: number) {
     const resp = (await this.fetch("/get_group_member_list", {
       group_id: group,
-    })) as GetGroupMemberInfoResponse;
+    })) as GetGroupMemberListResponse;
     return resp.data;
   }
 
