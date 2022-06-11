@@ -105,7 +105,7 @@ export class ScopeParser {
     if (option && (option.key === "-group" || option.key === "-qq")) {
       const value = option.value.integer;
       if (!value || value < 0) {
-        this._errors.push(`参数 -${flag} 选项的值必须为正整数`);
+        this._errors.push(`参数选项 ${option} 的值必须为正整数`);
         return { hasConsumed: true };
       }
       const raw = arg.text!;
