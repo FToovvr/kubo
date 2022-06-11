@@ -56,7 +56,7 @@ export class FloodMonitor {
     group: number | null,
     sourceQQ: number,
     counts?: MessageContentCounts, // TODO: 把发送内容的大小也计入考察当中
-  ): Promise<{ isOk: boolean; error?: string | null }> {
+  ): Promise<{ isOk: boolean; errors: string[] }> {
     const now = new Date();
 
     const informee = {
@@ -64,13 +64,21 @@ export class FloodMonitor {
       target: group ? group : sourceQQ,
     };
 
+    let isOk = true;
+    let errors = [];
+
     const globalResult = await this.process(
       {},
       now,
       this.thresholds.global,
       informee,
     );
-    if (!globalResult.isOk) return globalResult;
+    if (!globalResult.isOk) {
+      isOk = false;
+      if (globalResult.error) {
+        errors.push(globalResult.error);
+      }
+    }
 
     if (group) {
       const groupResult = await this.process(
@@ -78,7 +86,12 @@ export class FloodMonitor {
         now,
         this.thresholds.group,
       );
-      if (!groupResult.isOk) return groupResult;
+      if (!groupResult.isOk) {
+        isOk = false;
+        if (groupResult.error) {
+          errors.push(groupResult.error);
+        }
+      }
     }
 
     const userResult = await this.process(
@@ -86,9 +99,14 @@ export class FloodMonitor {
       now,
       this.thresholds.user,
     );
-    if (!userResult.isOk) return userResult;
+    if (!userResult.isOk) {
+      isOk = false;
+      if (userResult.error) {
+        errors.push(userResult.error);
+      }
+    }
 
-    return { isOk: true };
+    return { isOk, errors };
   }
 
   private async process(

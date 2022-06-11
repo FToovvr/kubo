@@ -501,7 +501,7 @@ export class KuboBot {
       errorMessages.push("拒绝发送响应消息：" + checkResult.error + "！");
     }
 
-    let floodCheck: { isOk: boolean; error?: string | null };
+    let floodCheck: { isOk: boolean; errors: string[] };
     if (args.sourceGroup) {
       floodCheck = await this.floodMonitor.reportOutboundGroupMessage(
         args.sourceGroup,
@@ -515,8 +515,12 @@ export class KuboBot {
       );
     }
     if (!floodCheck.isOk) {
-      if (!floodCheck.error) return { sent: false, response: null };
-      errorMessages.push("冷却中：" + floodCheck.error + "！");
+      if (!floodCheck.errors.length) return { sent: false, response: null };
+      if (floodCheck.errors.length === 1) {
+        errorMessages.push("冷却中：" + floodCheck.errors[0] + "！");
+      } else {
+        errorMessages.push("冷却中：\n" + floodCheck.errors.join("\n") + "！");
+      }
     }
 
     let sent: "message" | "error" = "message";
