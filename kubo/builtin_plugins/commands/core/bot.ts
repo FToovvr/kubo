@@ -145,7 +145,7 @@ async function subCmd_activity(
       subCmdArgs.slice(1),
     );
     if (errors.length) {
-      return makeBadArgumentsError(ctx, errors, { subCommand: "status" });
+      return makeBadArgumentsError(ctx, errors, { subCommand: "activity" });
     }
 
     return changeActivityStatus(ctx, changesTo, scope!);
@@ -156,7 +156,7 @@ async function subCmd_activity(
     subCmdArgs,
   );
   if (errors.length) {
-    return makeBadArgumentsError(ctx, errors, { subCommand: "status" });
+    return makeBadArgumentsError(ctx, errors, { subCommand: "activity" });
   }
 
   return generateActivityText(ctx, scope!);
