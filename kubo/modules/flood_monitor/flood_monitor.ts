@@ -220,9 +220,7 @@ export class FloodMonitor {
     const freezeUntil = await getDate(this.store, scope, "freeze-until");
     if (!freezeUntil) return false;
     if (now >= freezeUntil) {
-      await this.store.set(scope, "freeze-until", null);
-      await this.store.set(scope, "has-informed-group", null);
-      await this.store.set(scope, "has-informed-private", null);
+      await this.unfreeze(scope);
       return false;
     }
     return true;
@@ -248,6 +246,23 @@ export class FloodMonitor {
     await this.store.set({}, key, newList.join(","));
 
     return false;
+  }
+
+  async isFrozen(scope: {} | { group: number } | { qq: number }) {
+    return await this.checkAndUpdateFreezingStatus(scope, new Date());
+  }
+
+  async unfreeze(
+    scope: {} | { group: number } | { qq: number },
+    extra: { removeRecords: boolean } = { removeRecords: false },
+  ) {
+    await this.store.set(scope, "freeze-until", null);
+    await this.store.set(scope, "has-informed-group", null);
+    await this.store.set(scope, "has-informed-private", null);
+    if (extra.removeRecords) {
+      await this.store.set(scope, "triggered", null);
+      await this.store.set(scope, "outbound", null);
+    }
   }
 }
 

@@ -169,8 +169,10 @@ async function changeActivityStatus(
 ): Promise<CommandCallbackReturnValue> {
   // 检查权限
   const sender = ctx.message.senderQQ;
-  if (!await ctx.bot.roles.canManageBot(scope, sender)) {
-    const roles = ctx.bot.roles.getRolesCanManageBot(scope).join("、");
+  if (!await ctx.bot.roles.canManageBotInScope(scope, sender)) {
+    const roles = ctx.bot.roles.getRolesCanManageBotInScope(
+      scope === "global" ? "global" : "group",
+    ).join("、");
     return { error: `执行者权限不足！，可执行本操作的角色有：${roles}。` };
   }
 

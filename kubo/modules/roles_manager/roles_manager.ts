@@ -7,16 +7,24 @@ export class RolesManager {
     this.bot = bot;
   }
 
-  async canManageBot(scope: "global" | { group: number }, qq: number) {
+  async canManageBotGlobally(qq: number) {
+    return await this.getUserGlobalRoles(qq).canManageBotGlobally();
+  }
+  getRolesCanManageBotGlobally() {
+    return GlobalRoles.rolesCanManageBotGlobally;
+  }
+
+  async canManageBotInScope(scope: "global" | { group: number }, qq: number) {
     if (scope === "global") {
-      return await this.getUserGlobalRoles(qq).canManageBot();
+      return await this.getUserGlobalRoles(qq).canManageBotInScope();
     } else {
-      return await this.getUserGroupRoles(qq, scope.group).canManageBot();
+      return await this.getUserGroupRoles(qq, scope.group)
+        .canManageBotInScope();
     }
   }
-  getRolesCanManageBot(scope: "global" | { group: number }) {
+  getRolesCanManageBotInScope(scope: "global" | "group") {
     if (scope === "global") {
-      return GlobalRoles.rolesCanManageBot;
+      return GlobalRoles.rolesCanManageBotInScope;
     } else {
       return GroupRoles.rolesCanManageBot;
     }
@@ -58,11 +66,18 @@ export class GlobalRoles {
   // TODO:
   // - hasRole(roleText)
 
-  async canManageBot() {
+  async canManageBotGlobally() {
     return await this.isBotOwner();
   }
-  static get rolesCanManageBot() {
+  static get rolesCanManageBotGlobally() {
     return [roleName_botOwner];
+  }
+
+  async canManageBotInScope() {
+    return await this.canManageBotGlobally();
+  }
+  static get rolesCanManageBotInScope() {
+    return this.rolesCanManageBotGlobally;
   }
 
   async getGlobalRoles(): Promise<Role[]> {
@@ -109,12 +124,13 @@ export class GroupRoles extends GlobalRoles {
     return role === "owner" || role === "admin";
   }
 
-  async canManageBot() {
-    return await super.canManageBot() || await this.isGroupOwnerOrAdmin();
+  async canManageBotInScope() {
+    return await super.canManageBotInScope() ||
+      await this.isGroupOwnerOrAdmin();
   }
   static get rolesCanManageBot() {
     return [
-      ...super.rolesCanManageBot,
+      ...super.rolesCanManageBotInScope,
       ...[roleName_groupOwner, roleName_groupAdmin],
     ];
   }
