@@ -67,7 +67,7 @@ ${usageHead}
 ${makeUsageExample(prefix, getShortestHead(heads))}
 
 选项：
-    -h -help  输出帮助文本（本文本）
+    -h -help  输出简要帮助文本
 
     <nth> 序号，要选择第几个内容（由 1 开始计数）
 
