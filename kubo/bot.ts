@@ -200,10 +200,13 @@ export class KuboBot {
   }
 
   pluginStoreWrappers: PluginStoreWrapper[] = [];
-  getPluginStore(plugin: KuboPlugin) {
+  getPluginStore(
+    plugin: KuboPlugin,
+    args: ConstructorParameters<typeof PluginStoreWrapper>[2] = {},
+  ) {
     this.isBotRunningOrDie();
 
-    const wrapper = new PluginStoreWrapper(this._store, plugin);
+    const wrapper = new PluginStoreWrapper(this._store, plugin, args);
     this.pluginStoreWrappers.push(wrapper);
     return wrapper;
   }

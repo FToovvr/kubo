@@ -280,8 +280,12 @@ export class StoreWrapper {
 export class PluginStoreWrapper extends StoreWrapper {
   pluginId: string;
 
-  constructor(store: Store, plugin: KuboPlugin) {
-    super(store, "never");
+  constructor(
+    store: Store,
+    plugin: KuboPlugin,
+    args: ConstructorParameters<typeof StoreWrapper>[2] = {},
+  ) {
+    super(store, "never", args);
     this.pluginId = plugin.id;
   }
 
