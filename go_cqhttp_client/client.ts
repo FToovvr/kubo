@@ -2,8 +2,8 @@ import { EventClient } from "./event_client.ts";
 import { APIClient } from "./api_client.ts";
 import { TokenBucket } from "../utils/token_bucket.ts";
 import { MessagePiece, Text } from "./message_piece.ts";
-import { sleep } from "../utils/misc.ts";
 import { mergeAdjoiningTextPiecesInPlace } from "../utils/message_utils.ts";
+import { MessageSender } from "./message_sender.ts";
 
 export class Client {
   //==== 配置相关 ====
@@ -45,8 +45,7 @@ export class Client {
       ...(this.accessToken ? { accessToken: this.accessToken } : {}),
     });
 
-    this.messageTokenBucket = args.sending?.messageTokenBucket ??
-      new TokenBucket({ size: 1, supplementPerSecond: 1 });
+    this.messageSender = new MessageSender(this.apiClient);
     this.messageDelay = args.sending?.messageDelay ?? 0;
   }
 
@@ -58,20 +57,14 @@ export class Client {
 
   //==== 发送消息 ====
 
-  messageTokenBucket: TokenBucket;
+  messageSender: MessageSender;
   messageDelay: number | (() => number);
 
   protected supportedTypes = new Set(["text", "at", "face", "image"]);
 
-  protected async waitToSendMessage() {
-    await this.messageTokenBucket.take();
-    if (this.messageDelay) {
-      let d = this.messageDelay;
-      d = (typeof d === "number") ? d : d();
-      if (d > 0) {
-        await sleep(d);
-      }
-    }
+  protected getMessageDelay() {
+    let d = this.messageDelay ?? 0;
+    return (typeof d === "number") ? d : d();
   }
 
   protected checkMessage(message: string | MessagePiece[]) {
@@ -109,26 +102,28 @@ export class Client {
     return await this.apiClient.getLoginInfo();
   }
 
-  async sendGroupMessage(
+  sendGroupMessage(
     toGroup: number,
     message: string | MessagePiece[],
   ) {
     this.checkMessage(message);
-    await this.waitToSendMessage();
-    return await this.apiClient.sendGroupMessage(toGroup, message, {
-      cq: false,
-    });
+    return this.messageSender.sendMessage({
+      type: "group",
+      toGroup,
+      message,
+    }, this.getMessageDelay());
   }
 
-  async sendPrivateMessage(
+  sendPrivateMessage(
     toQQ: number,
     message: string | MessagePiece[],
   ) {
     this.checkMessage(message);
-    await this.waitToSendMessage();
-    return await this.apiClient.sendPrivateMessage(toQQ, message, {
-      cq: false,
-    });
+    return this.messageSender.sendMessage({
+      type: "private",
+      toQQ,
+      message,
+    }, this.getMessageDelay());
   }
 
   async handleFriendRequest(flag: string, action: "approve" | "deny") {
