@@ -104,3 +104,8 @@ export interface MessageContentCounts {
   emoticons: number;
   otherPieces: Set<string>;
 }
+
+export type AffectScope =
+  | { scope: "global" }
+  | { scope: "group"; group: number }
+  | { scope: "user"; qq: number };

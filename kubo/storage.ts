@@ -2,7 +2,7 @@ import { Client as PgClient } from "https://deno.land/x/postgres@v0.16.0/mod.ts"
 
 import utils from "./utils.ts";
 
-import { KuboPlugin } from "./types.ts";
+import { AffectScope, KuboPlugin } from "./types.ts";
 
 type Value = number | string | null;
 
@@ -195,7 +195,12 @@ export class StoreWrapper {
     await this.writeBack();
   }
 
-  async get(ctx: { group?: number; qq?: number }, key: string) {
+  async get(ctx: AffectScope, key: string): Promise<Value>;
+  async get(ctx: { group?: number; qq?: number }, key: string): Promise<Value>;
+  async get(
+    ctx: { scope?: string; group?: number; qq?: number },
+    key: string,
+  ): Promise<Value> {
     if (this.usesCache) {
       let cache = this.getCacheOfScope(ctx.group ?? null, ctx.qq ?? null);
       const valueWrapper = cache[key];
@@ -221,11 +226,25 @@ export class StoreWrapper {
   }
 
   async set(
+    ctx: AffectScope,
+    key: string,
+    val: Value,
+    args?: StoreSetArguments,
+  ): Promise<void>;
+  async set(
     ctx: { group?: number; qq?: number },
     key: string,
     val: Value,
-    args: StoreSetArguments = {},
-  ) {
+    args?: StoreSetArguments,
+  ): Promise<void>;
+  async set(
+    ctx: { scope?: string; group?: number; qq?: number },
+    key: string,
+    val: Value,
+    args?: StoreSetArguments,
+  ): Promise<void> {
+    args = {};
+
     if (this.usesCache) {
       const cache = this.getCacheOfScope(ctx.group ?? null, ctx.qq ?? null);
       cache[key] = { value: val, hasChanged: true, args };

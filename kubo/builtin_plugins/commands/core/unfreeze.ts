@@ -80,14 +80,13 @@ const callback: CommandCallback = async (ctx, args) => {
     return makeBadArgumentsError(ctx, ["未指定适用范围"]);
   } else if (scope === undefined) throw new Error("never");
 
-  let oldScope = newScopeFormToOld(scope!)!;
-  const isFrozenNow = await ctx.bot.floodMonitor.isFrozen(oldScope);
+  const isFrozenNow = await ctx.bot.floodMonitor.isFrozen(scope);
 
   if (!isFrozenNow) {
     return "指定的适用范围中 bot 并未处于冷却状态，忽略。";
   }
 
-  await ctx.bot.floodMonitor.unfreeze(oldScope, { removeRecords: true });
+  await ctx.bot.floodMonitor.unfreeze(scope, { removeRecords: true });
   return "已解除 bot 在指定适用范围中的冷却状态。";
 };
 

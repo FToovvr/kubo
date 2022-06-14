@@ -1,6 +1,7 @@
 import { CommandArgument } from "../../modules/command_manager/models/command_argument.ts";
 import { CommandCallbackReturnValue } from "../../modules/command_manager/models/command_entity.ts";
 import { PluginContextForCommand } from "../../modules/command_manager/models/execute_context.ts";
+import { AffectScope } from "../../types.ts";
 
 export function makeUnknownArgumentErrorText(
   i: number | null,
@@ -68,14 +69,10 @@ export function hasHelpFlag(args: CommandArgument[]) {
   }).length > 0;
 }
 
-type Scope =
-  | { scope: "global" }
-  | { scope: "group"; group: number }
-  | { scope: "user"; qq: number };
 type OldScope = "global" | { group: number } | { qq: number };
 
 export class ScopeParser {
-  scopes: { scope: Scope; raw: string }[] = [];
+  scopes: { scope: AffectScope; raw: string }[] = [];
   private _errors: string[] = [];
 
   parse(
@@ -138,7 +135,7 @@ export class ScopeParser {
 }
 
 export function newScopeFormToOld(
-  scope: Scope | undefined,
+  scope: AffectScope | undefined,
 ): OldScope | undefined {
   if (!scope) return undefined;
 

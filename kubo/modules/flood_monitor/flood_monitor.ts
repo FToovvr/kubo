@@ -1,5 +1,6 @@
+import { newScopeFormToOld } from "../../builtin_plugins/commands/utils.ts";
 import { IStore, StoreWrapper } from "../../storage.ts";
-import { MessageContentCounts } from "../../types.ts";
+import { AffectScope, MessageContentCounts } from "../../types.ts";
 
 export class FloodMonitor {
   store: StoreWrapper;
@@ -38,37 +39,46 @@ export class FloodMonitor {
   }
 
   async reportOutboundGroupMessage(
-    group: number,
-    sourceQQ: number,
+    group: number | null,
+    sourceQQ: number | null,
     counts?: MessageContentCounts,
   ) {
     return await this.reportOutboundMessage(group, sourceQQ, counts);
   }
 
   async reportOutboundPrivateMessage(
-    triggerQQ: number,
+    sourceQQ: number | null,
     counts?: MessageContentCounts,
   ) {
-    return await this.reportOutboundMessage(null, triggerQQ, counts);
+    return await this.reportOutboundMessage(null, sourceQQ, counts);
   }
 
   private async reportOutboundMessage(
-    group: number | null,
-    sourceQQ: number,
+    sourceGroup: number | null,
+    sourceQQ: number | null,
     counts?: MessageContentCounts, // TODO: 把发送内容的大小也计入考察当中
   ): Promise<{ isOk: boolean; errors: string[] }> {
     const now = new Date();
 
-    const informee = {
-      place: group ? "group" : "private" as "group" | "private",
-      target: group ? group : sourceQQ,
-    };
+    let informee: { place: "group" | "private"; target: number } | undefined =
+      undefined;
+    if (sourceGroup) {
+      informee = {
+        place: "group",
+        target: sourceGroup,
+      };
+    } else if (sourceQQ) {
+      informee = {
+        place: "private",
+        target: sourceQQ,
+      };
+    }
 
     let isOk = true;
     let errors = [];
 
     const globalResult = await this.process(
-      {},
+      { scope: "global" },
       now,
       this.thresholds.global,
       informee,
@@ -80,9 +90,9 @@ export class FloodMonitor {
       }
     }
 
-    if (group) {
+    if (sourceGroup) {
       const groupResult = await this.process(
-        { group },
+        { scope: "group", group: sourceGroup },
         now,
         this.thresholds.group,
       );
@@ -94,15 +104,17 @@ export class FloodMonitor {
       }
     }
 
-    const userResult = await this.process(
-      { qq: sourceQQ },
-      now,
-      this.thresholds.user,
-    );
-    if (!userResult.isOk) {
-      isOk = false;
-      if (userResult.error) {
-        errors.push(userResult.error);
+    if (sourceQQ) {
+      const userResult = await this.process(
+        { scope: "user", qq: sourceQQ },
+        now,
+        this.thresholds.user,
+      );
+      if (!userResult.isOk) {
+        isOk = false;
+        if (userResult.error) {
+          errors.push(userResult.error);
+        }
       }
     }
 
@@ -110,7 +122,7 @@ export class FloodMonitor {
   }
 
   private async process(
-    scope: {} | { group: number } | { qq: number },
+    scope: AffectScope,
     now: Date,
     threshold: number,
     informee?: {
@@ -121,10 +133,9 @@ export class FloodMonitor {
     // 检查是否已在冷却
     const isFrozen = await this.checkAndUpdateFreezingStatus(scope, now);
     if (isFrozen) {
-      if ("group" in scope || "qq" in scope) {
+      if ("group" in scope || "qq" in scope || !informee) {
         return { isOk: false, error: null };
       }
-      if (!informee) throw new Error("never");
       const hasInformed = await this.checkAndUpdateHasInformed(
         {},
         informee.place,
@@ -132,7 +143,11 @@ export class FloodMonitor {
       );
       if (hasInformed) return { isOk: false, error: null };
 
-      const freezeUntil = await getDate(this.store, {}, "freeze-until");
+      const freezeUntil = await getDate(
+        this.store,
+        { scope: "global" },
+        "freeze-until",
+      );
       if (!freezeUntil) throw new Error("never");
       const freezeUntilText = makeTimeText(freezeUntil);
       return { isOk: false, error: `全局操作过于频繁，正在冷却（直到 ${freezeUntilText}）` };
@@ -141,6 +156,7 @@ export class FloodMonitor {
     // 获取一分钟内的消息的时间戳
     const oneMinuteAgo = new Date(now);
     oneMinuteAgo.setMinutes(now.getMinutes() - 1);
+    oneMinuteAgo.setSeconds(oneMinuteAgo.getSeconds() + 1);
     const outbound = filterOutExpired(
       await getTextList(this.store, scope, "outbound"),
       oneMinuteAgo,
@@ -196,12 +212,13 @@ export class FloodMonitor {
         place = `用户（${scope.qq}）的`;
       } else {
         place = "全局";
-        if (!informee) throw new Error("never");
-        await this.checkAndUpdateHasInformed(
-          {},
-          informee.place,
-          informee.target,
-        );
+        if (informee) {
+          await this.checkAndUpdateHasInformed(
+            {},
+            informee.place,
+            informee.target,
+          );
+        }
       }
       const freezeUntilText = makeTimeText(freezeUntil);
       return {
@@ -214,7 +231,7 @@ export class FloodMonitor {
   }
 
   private async checkAndUpdateFreezingStatus(
-    scope: {} | { group: number } | { qq: number },
+    scope: AffectScope,
     now: Date,
   ) {
     const freezeUntil = await getDate(this.store, scope, "freeze-until");
@@ -239,7 +256,7 @@ export class FloodMonitor {
       key = "has-informed-private";
     }
 
-    const targets = await getTextList(this.store, {}, key);
+    const targets = await getTextList(this.store, { scope: "global" }, key);
     if (targets.indexOf("" + target) >= 0) return true;
 
     const newList = [...targets, "" + target];
@@ -248,12 +265,12 @@ export class FloodMonitor {
     return false;
   }
 
-  async isFrozen(scope: {} | { group: number } | { qq: number }) {
+  async isFrozen(scope: AffectScope) {
     return await this.checkAndUpdateFreezingStatus(scope, new Date());
   }
 
   async unfreeze(
-    scope: {} | { group: number } | { qq: number },
+    scope: AffectScope,
     extra: { removeRecords: boolean } = { removeRecords: false },
   ) {
     await this.store.set(scope, "freeze-until", null);
@@ -278,7 +295,7 @@ function filterOutExpired(textTss: string[], expireAt: Date) {
 
 async function getTextList(
   store: StoreWrapper,
-  scope: {} | { group: number } | { qq: number },
+  scope: AffectScope,
   key: string,
 ) {
   const value = await store.get(scope, key) as string | null;
@@ -298,7 +315,7 @@ function makeTimeText(date: Date) {
 
 async function getDate(
   store: StoreWrapper,
-  scope: {} | { group: number } | { qq: number },
+  scope: AffectScope,
   key: string,
 ) {
   const string = (await store.get(scope, key)) as string | null;
